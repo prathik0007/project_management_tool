@@ -7,14 +7,15 @@ import {
   getUsers,
 } from '../controllers/authController.js';
 import protect from '../middleware/auth.js';
+import { authRateLimit } from '../middleware/security.js';
 
 const router = express.Router();
 
 // POST /api/auth/register — Create a new user account
-router.post('/register', registerUser);
+router.post('/register', authRateLimit, registerUser);
 
 // POST /api/auth/login — Login with email and password
-router.post('/login', loginUser);
+router.post('/login', authRateLimit, loginUser);
 
 // GET /api/auth/me — Get the currently logged-in user (protected)
 // "protect" middleware runs first — if it passes, getMe runs

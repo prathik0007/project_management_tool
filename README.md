@@ -1,24 +1,24 @@
 # Project Management Tool
 
-A modern web application built with React for the frontend and Node.js with Express for the backend.
-
-## 🚀 Phase 1: Basic Setup & Connection
-
-Phase 1 establishes the baseline project structure and verifies communication between the React frontend and Node.js/Express backend.
+A modern web application built with React for the frontend and Node.js with Express for the backend, connected to MongoDB for data storage.
 
 ---
 
 ## 🛠️ Technologies Used
 
 ### Frontend
-- **React 18** - UI Library
-- **Vite** - Lightning-fast Build Tool & Dev Server
-- **CSS3** - Modern styling
+- **React 18** – UI Library
+- **Vite** – Lightning-fast Build Tool & Dev Server
 
 ### Backend
-- **Node.js** - JavaScript Runtime
-- **Express.js** - Web framework for API routes
-- **CORS** - Enables cross-origin requests from frontend
+- **Node.js** – JavaScript Runtime
+- **Express.js** – Web framework for API routes
+- **CORS** – Enables cross-origin requests from frontend
+- **dotenv** – Loads environment variables from `.env` file
+- **Mongoose** – MongoDB object modeling for Node.js
+
+### Database
+- **MongoDB** – NoSQL cloud database (MongoDB Atlas recommended)
 
 ---
 
@@ -27,8 +27,12 @@ Phase 1 establishes the baseline project structure and verifies communication be
 ```text
 project-management-tool/
 ├── backend/
+│   ├── config/
+│   │   └── db.js          ← MongoDB connection logic
+│   ├── .env               ← Private environment variables (NOT committed to git)
+│   ├── .env.example       ← Template showing required env variables
 │   ├── package.json
-│   └── server.js
+│   └── server.js          ← Express server entry point
 ├── frontend/
 │   ├── index.html
 │   ├── package.json
@@ -43,36 +47,89 @@ project-management-tool/
 
 ---
 
+## ⚙️ Environment Setup (REQUIRED before running backend)
+
+The backend requires a `.env` file inside the `backend/` folder.
+
+### Step 1: Create the `.env` file
+
+Inside the `backend/` folder, create a file named `.env`:
+
+```
+backend/.env
+```
+
+### Step 2: Add your environment variables
+
+Open the `.env` file and add:
+
+```
+MONGO_URI=your_actual_mongodb_connection_string
+PORT=5000
+```
+
+Replace `your_actual_mongodb_connection_string` with your real MongoDB Atlas URI.
+
+> ⚠️ **IMPORTANT**: Never share or commit your `.env` file. It is already listed in `.gitignore`.
+
+### MongoDB Atlas URI format
+
+```
+mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/<dbname>?retryWrites=true&w=majority
+```
+
+---
+
 ## ⚡ How to Start the Project
 
 ### 1. Start the Backend Server
-
-Open a terminal and run:
 
 ```bash
 cd backend
 npm install
 npm start
 ```
-The backend server will run at: **`http://localhost:5000`**
+
+Backend runs at: **`http://localhost:5000`**
+
+**Expected terminal output when MongoDB connects successfully:**
+```
+Server running on http://localhost:5000
+MongoDB Connected: cluster0.xxxxx.mongodb.net
+```
 
 ---
 
 ### 2. Start the Frontend Application
 
-Open a **new** terminal window/tab and run:
+Open a **new** terminal tab and run:
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-The React frontend will run at: **`http://localhost:5173`**
+
+Frontend runs at: **`http://localhost:5173`**
 
 ---
 
-## 🧪 Testing Connection
+## 🧪 Testing the API Endpoints
 
-1. Open `http://localhost:5173` in your web browser.
-2. Click the **"Test Backend"** button.
-3. You will see the response from Express server: `"Backend is working"`.
+### Test 1 – Backend health check (Phase 1)
+```
+GET http://localhost:5000/api/test
+```
+Expected response:
+```json
+{ "message": "Backend is working" }
+```
+
+### Test 2 – Database connection check (Phase 2)
+```
+GET http://localhost:5000/api/db-test
+```
+Expected response when connected:
+```json
+{ "message": "Database is connected" }
+```

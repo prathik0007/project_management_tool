@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import AppNav from './components/AppNav.jsx';
+import { ToastProvider } from './components/Toast.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Tasks from './pages/Tasks.jsx';
 import ProjectDetails from './pages/ProjectDetails.jsx';
@@ -35,10 +36,12 @@ function Home() {
   };
 
   return (
-    <div className="container">
-      <header className="header">
-        <h1>Project Management Tool</h1>
-        <p className="status-badge">Frontend is working</p>
+    <div className="page-container">
+      <header className="page-header">
+        <div>
+          <h1>Project Management Tool</h1>
+          <p className="page-subtitle">Frontend is working</p>
+        </div>
       </header>
 
       <main className="content-card">
@@ -66,13 +69,13 @@ function Home() {
         )}
       </main>
 
-      {/* Navigation to Tasks page */}
+      {/* Navigation to app sections */}
       <nav className="home-nav">
         <Link to="/dashboard" className="nav-card">
           <span className="nav-card-label">Open Dashboard</span>
+          <span className="nav-card-arrow">→</span>
         </Link>
         <Link to="/tasks" className="nav-card">
-          <span className="nav-card-icon">✅</span>
           <span className="nav-card-label">Go to Tasks</span>
           <span className="nav-card-arrow">→</span>
         </Link>
@@ -84,19 +87,23 @@ function Home() {
 // ─── App with Router ─────────────────────────────────────────────────────────
 function App() {
   return (
-    <BrowserRouter>
-      <AppNav />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-        <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
-        <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <AppNav />
+        <div className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
+            <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

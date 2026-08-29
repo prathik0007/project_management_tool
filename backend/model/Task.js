@@ -69,8 +69,31 @@ const taskSchema = new mongoose.Schema(
   {
     // Automatically adds createdAt and updatedAt fields to every document
     timestamps: true,
+    // Computed fields are returned in API responses but are never stored.
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+const getDayBounds = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return { today, tomorrow };
+};
+
+// deadlineStatus is dynamic and is not persisted in MongoDB.
+taskSchema.virtual('deadlineStatus').get(function getDeadlineStatus() {
+  if (!this.dueDate) return 'no-deadline';
+  if (this.status === 'completed') return 'completed';
+
+  const { today, tomorrow } = getDayBounds();
+  const dueDate = new Date(this.dueDate);
+  if (dueDate < today) return 'overdue';
+  if (dueDate < tomorrow) return 'due-today';
+  return 'upcoming';
+});
 
 const Task = mongoose.model('Task', taskSchema);
 

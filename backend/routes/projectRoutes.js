@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createProject,
   getProjects,
+  getProjectSummary,
   getProjectById,
   updateProject,
   deleteProject,
@@ -18,6 +19,8 @@ router.use(protect);
 // POST   /api/projects      → Create a new project
 // GET    /api/projects      → Get all projects for the logged-in user
 router.route('/').post(createProject).get(getProjects);
+
+router.get('/:projectId/summary', getProjectSummary);
 
 // GET    /api/projects/:id  → Get a single project by ID
 // PUT    /api/projects/:id  → Update a project by ID

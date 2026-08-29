@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createTask,
   getAllTasks,
+  getTaskDeadlines,
   getTasksByProject,
   getTaskById,
   updateTask,
@@ -30,6 +31,8 @@ router.route('/').get((req, res, next) => {
   // Otherwise return all tasks across all the user's projects
   return getAllTasks(req, res, next);
 }).post(createTask);
+
+router.get('/deadlines', getTaskDeadlines);
 
 // GET    /api/tasks/:id → Get a single task by ID
 // PUT    /api/tasks/:id → Update a task by ID

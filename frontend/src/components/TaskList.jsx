@@ -1,26 +1,21 @@
 import TaskItem from './TaskItem.jsx';
+import EmptyState from './EmptyState.jsx';
+import Skeletons from './Skeletons.jsx';
+import { Icon } from './Icons.jsx';
 
-// TaskList renders the list of tasks or appropriate empty/loading/error states.
-// Props:
-//   tasks     - array of task objects
-//   loading   - boolean — show spinner while fetching
-//   error     - string error message from the API
-//   onRefresh - callback to re-fetch the list (passed down to TaskItem)
+// TaskList renders the task list or appropriate empty/loading/error states.
 function TaskList({ tasks, loading, error, onRefresh }) {
-  if (loading) {
-    return <p className="loading-text">Loading tasks...</p>;
-  }
+  if (loading) return <Skeletons count={3} rows />;
 
-  if (error) {
-    return <p className="error-text">{error}</p>;
-  }
+  if (error) return <p className="error-text">{error}</p>;
 
   if (!tasks || tasks.length === 0) {
     return (
-      <div className="empty-state">
-        <p>No tasks found.</p>
-        <p className="muted">Create your first task using the form above.</p>
-      </div>
+      <EmptyState
+        icon="check"
+        title="No tasks yet"
+        message="Create your first task to start tracking your work."
+      />
     );
   }
 
