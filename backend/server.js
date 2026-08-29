@@ -51,9 +51,10 @@ app.get('/api/db-test', (req, res) => {
   }
 });
 
-// Phase 3A: Authentication routes
-// All routes defined in authRoutes.js will be prefixed with /api/auth
+// Phase 3A: Authentication routes (/api/auth/register, /api/auth/login, etc.)
 app.use('/api/auth', authRoutes);
+// Phase 5B: Users list endpoint for task assignment (/api/users)
+app.use('/api', authRoutes);
 
 // Phase 4A: Project routes
 // All routes defined in projectRoutes.js will be prefixed with /api/projects

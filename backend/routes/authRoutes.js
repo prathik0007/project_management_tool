@@ -4,6 +4,7 @@ import {
   loginUser,
   getMe,
   logoutUser,
+  getUsers,
 } from '../controllers/authController.js';
 import protect from '../middleware/auth.js';
 
@@ -21,5 +22,8 @@ router.get('/me', protect, getMe);
 
 // POST /api/auth/logout — Clear the auth cookie and log out
 router.post('/logout', logoutUser);
+
+// GET /api/users — Get all users for task assignment (protected)
+router.get('/users', protect, getUsers);
 
 export default router;

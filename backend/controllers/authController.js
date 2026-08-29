@@ -142,6 +142,20 @@ export const getMe = async (req, res) => {
   }
 };
 
+// ─── GET ALL USERS (for task assignment dropdown) ───────────────────────────
+// GET /api/users
+// Protected — requires auth. Returns safe fields only (no passwords).
+export const getUsers = async (req, res) => {
+  try {
+    // Select only the fields safe to expose: id, name, email
+    const users = await User.find({}).select('name email').sort({ name: 1 });
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    console.error('Get users error:', error.message);
+    res.status(500).json({ message: 'Server error while fetching users' });
+  }
+};
+
 // ─── LOGOUT ─────────────────────────────────────────────────────────────────
 // POST /api/auth/logout
 export const logoutUser = (req, res) => {
