@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import AppNav from './components/AppNav.jsx';
 import Tasks from './pages/Tasks.jsx';
 import ProjectDetails from './pages/ProjectDetails.jsx';
 import Deadlines from './pages/Deadlines.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
+import Projects from './pages/Projects.jsx';
 
 // ─── Home Page (Phase 1 content, preserved) ─────────────────────────────────
 function Home() {
@@ -80,12 +84,16 @@ function Home() {
 function App() {
   return (
     <BrowserRouter>
+      <AppNav />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
         <Route path="/deadlines" element={<Deadlines />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );

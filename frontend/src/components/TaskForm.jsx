@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { tasksAPI, projectsAPI, usersAPI } from '../services/api.js';
 
 // TaskForm handles both CREATE and EDIT modes.
@@ -30,7 +30,7 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
   const [error, setError] = useState('');
 
   // Load projects and users when component first mounts
-  useState(() => {
+  useEffect(() => {
     const loadDropdownData = async () => {
       try {
         const [projectsData, usersData] = await Promise.all([
