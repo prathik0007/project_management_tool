@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
 
 // Initialize the Express app
 const app = express();
@@ -52,6 +53,10 @@ app.get('/api/db-test', (req, res) => {
 // Phase 3A: Authentication routes
 // All routes defined in authRoutes.js will be prefixed with /api/auth
 app.use('/api/auth', authRoutes);
+
+// Phase 4A: Project routes
+// All routes defined in projectRoutes.js will be prefixed with /api/projects
+app.use('/api/projects', projectRoutes);
 
 // ─── Start Server ───────────────────────────────────────────────────────────
 
