@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Tasks from './pages/Tasks.jsx';
 import ProjectDetails from './pages/ProjectDetails.jsx';
 import Deadlines from './pages/Deadlines.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 
 // ─── Home Page (Phase 1 content, preserved) ─────────────────────────────────
 function Home() {
@@ -62,6 +63,9 @@ function Home() {
 
       {/* Navigation to Tasks page */}
       <nav className="home-nav">
+        <Link to="/dashboard" className="nav-card">
+          <span className="nav-card-label">Open Dashboard</span>
+        </Link>
         <Link to="/tasks" className="nav-card">
           <span className="nav-card-icon">✅</span>
           <span className="nav-card-label">Go to Tasks</span>
@@ -81,6 +85,7 @@ function App() {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
         <Route path="/deadlines" element={<Deadlines />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );
