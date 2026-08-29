@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Project from '../model/Project.js';
+import Task from '../model/Task.js';
 
 // ─── Helper: Check if a MongoDB ID is valid ────────────────────────────────
 // If someone passes "abc" instead of a real ObjectId, this prevents a crash
@@ -62,6 +63,50 @@ export const getProjects = async (req, res) => {
 // ─── GET SINGLE PROJECT ────────────────────────────────────────────────────
 // GET /api/projects/:id
 // Returns a single project — only if it belongs to the logged-in user
+// GET /api/projects/:projectId/summary
+// Progress and deadline counts are calculated from current Task documents.
+export const getProjectSummary = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!isValidId(projectId)) {
+      return res.status(400).json({ message: 'Invalid project ID format' });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    if (project.owner.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to access this project' });
+    }
+
+    const tasks = await Task.find({ project: projectId });
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter((task) => task.status === 'completed').length;
+    const inProgressTasks = tasks.filter((task) => task.status === 'in-progress').length;
+    const todoTasks = tasks.filter((task) => task.status === 'todo').length;
+    const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+    const overdueTasks = tasks.filter((task) => task.deadlineStatus === 'overdue').length;
+    const upcomingTasks = tasks.filter((task) => task.deadlineStatus === 'upcoming').length;
+
+    res.status(200).json({
+      project,
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      todoTasks,
+      progress,
+      overdueTasks,
+      upcomingTasks,
+    });
+  } catch (error) {
+    console.error('Get project summary error:', error.message);
+    res.status(500).json({ message: 'Server error while fetching project summary' });
+  }
+};
+
 export const getProjectById = async (req, res) => {
   try {
     // 1. Validate the format of the ID in the URL

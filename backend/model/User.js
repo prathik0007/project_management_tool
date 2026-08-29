@@ -41,11 +41,11 @@ const userSchema = new mongoose.Schema(
 
 // ─── Pre-save Hook: Hash the password before saving ────────────────────────
 // This runs automatically every time a user document is saved
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   // Only hash the password if it has been modified (or is new)
   // This prevents re-hashing an already-hashed password on profile updates
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
   // Generate a salt with 10 rounds (higher = slower = more secure)
@@ -54,7 +54,6 @@ userSchema.pre('save', async function (next) {
   // Replace the plain-text password with the hashed version
   this.password = await bcrypt.hash(this.password, salt);
 
-  next();
 });
 
 // ─── Instance Method: Compare passwords during login ───────────────────────

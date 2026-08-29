@@ -11,7 +11,8 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     // If connection fails, log the error message to the terminal
-    console.error(`MongoDB Connection Error: ${error.message}`);
+    // Do not print connection details; they can contain sensitive host data.
+    console.error('MongoDB connection failed');
 
     // Exit the Node.js process with code 1 (means failure)
     // This prevents the server from running without a database

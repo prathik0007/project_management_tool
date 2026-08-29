@@ -131,6 +131,37 @@ export const getAllTasks = async (req, res) => {
 
 // ─── GET TASKS FOR A SPECIFIC PROJECT ─────────────────────────────────────
 // GET /api/projects/:projectId/tasks
+// GET /api/tasks/deadlines
+// Returns only non-completed tasks with an active due date from owned projects.
+export const getTaskDeadlines = async (req, res) => {
+  try {
+    const userProjects = await Project.find({ owner: req.user.id }).select('_id');
+    const projectIds = userProjects.map((project) => project._id);
+
+    const tasks = await Task.find({
+      project: { $in: projectIds },
+      status: { $ne: 'completed' },
+      dueDate: { $ne: null },
+    })
+      .populate('project', 'name')
+      .populate('assignedTo', 'name email')
+      .sort({ dueDate: 1 });
+
+    const deadlineTasks = tasks.filter((task) =>
+      ['upcoming', 'due-today', 'overdue'].includes(task.deadlineStatus)
+    );
+
+    res.status(200).json({
+      success: true,
+      count: deadlineTasks.length,
+      tasks: deadlineTasks,
+    });
+  } catch (error) {
+    console.error('Get task deadlines error:', error.message);
+    res.status(500).json({ message: 'Server error while fetching task deadlines' });
+  }
+};
+
 export const getTasksByProject = async (req, res) => {
   try {
     // 1. Verify the project exists and is owned by the logged-in user
