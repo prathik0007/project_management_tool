@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Tasks from './pages/Tasks.jsx';
+import ProjectDetails from './pages/ProjectDetails.jsx';
+import Deadlines from './pages/Deadlines.jsx';
 
 // ─── Home Page (Phase 1 content, preserved) ─────────────────────────────────
 function Home() {
@@ -77,6 +79,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/tasks" element={<Tasks />} />
+        <Route path="/projects/:id" element={<ProjectDetails />} />
+        <Route path="/deadlines" element={<Deadlines />} />
       </Routes>
     </BrowserRouter>
   );

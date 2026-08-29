@@ -60,6 +60,7 @@ function Tasks() {
       {/* ── Create Task Toggle Button ── */}
       <div className="section-header">
         <h2>All Tasks ({tasks.length})</h2>
+        <Link to="/deadlines" className="nav-link">View Deadlines</Link>
         <button
           className="btn-primary"
           onClick={() => setShowCreateForm((prev) => !prev)}

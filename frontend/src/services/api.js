@@ -39,6 +39,7 @@ export const usersAPI = {
 export const projectsAPI = {
   getAll: () => request('/projects'),
   getById: (id) => request(`/projects/${id}`),
+  getSummary: (id) => request(`/projects/${id}/summary`),
   create: (body) => request('/projects', { method: 'POST', body: JSON.stringify(body) }),
   update: (id, body) => request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (id) => request(`/projects/${id}`, { method: 'DELETE' }),
@@ -47,6 +48,7 @@ export const projectsAPI = {
 // ─── Tasks API ───────────────────────────────────────────────────────────────
 export const tasksAPI = {
   getAll: () => request('/tasks'),
+  getDeadlines: () => request('/tasks/deadlines'),
   getById: (id) => request(`/tasks/${id}`),
   getByProject: (projectId) => request(`/projects/${projectId}/tasks`),
   create: (body) => request('/tasks', { method: 'POST', body: JSON.stringify(body) }),
