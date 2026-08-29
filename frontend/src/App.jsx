@@ -1,28 +1,25 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Tasks from './pages/Tasks.jsx';
 
-function App() {
-  // State to store the message received from backend
+// ─── Home Page (Phase 1 content, preserved) ─────────────────────────────────
+function Home() {
   const [responseMessage, setResponseMessage] = useState('');
-  // State to track loading or error status
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Function to call the backend API endpoint
   const handleTestBackend = async () => {
     setLoading(true);
     setError('');
     setResponseMessage('');
-
     try {
-      const res = await fetch('http://localhost:5000/api/test');
-      if (!res.ok) {
-        throw new Error(`Server returned status: ${res.status}`);
-      }
+      const res = await fetch('http://localhost:5000/api/test', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`Server returned status: ${res.status}`);
       const data = await res.json();
-      // Store the message from backend response
       setResponseMessage(data.message);
     } catch (err) {
-      console.error('Error connecting to backend:', err);
       setError('Failed to connect to backend server');
     } finally {
       setLoading(false);
@@ -46,7 +43,6 @@ function App() {
           {loading ? 'Testing...' : 'Test Backend'}
         </button>
 
-        {/* Display success response */}
         {responseMessage && (
           <div className="response-box success">
             <span className="label">Backend Response:</span>
@@ -54,7 +50,6 @@ function App() {
           </div>
         )}
 
-        {/* Display error message if connection fails */}
         {error && (
           <div className="response-box error">
             <span className="label">Error:</span>
@@ -62,7 +57,28 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Navigation to Tasks page */}
+      <nav className="home-nav">
+        <Link to="/tasks" className="nav-card">
+          <span className="nav-card-icon">✅</span>
+          <span className="nav-card-label">Go to Tasks</span>
+          <span className="nav-card-arrow">→</span>
+        </Link>
+      </nav>
     </div>
+  );
+}
+
+// ─── App with Router ─────────────────────────────────────────────────────────
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/tasks" element={<Tasks />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
