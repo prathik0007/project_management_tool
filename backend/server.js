@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 
 // Initialize the Express app
 const app = express();
@@ -57,6 +58,13 @@ app.use('/api/auth', authRoutes);
 // Phase 4A: Project routes
 // All routes defined in projectRoutes.js will be prefixed with /api/projects
 app.use('/api/projects', projectRoutes);
+
+// Phase 5A: Task routes
+// General task routes: /api/tasks
+app.use('/api/tasks', taskRoutes);
+// Nested route: /api/projects/:projectId/tasks
+// mergeParams: true is set on the project router so :projectId is accessible
+app.use('/api/projects/:projectId/tasks', taskRoutes);
 
 // ─── Start Server ───────────────────────────────────────────────────────────
 
