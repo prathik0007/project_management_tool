@@ -1,5 +1,5 @@
 // Base URL for all API requests
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // ─── Core fetch wrapper ─────────────────────────────────────────────────────
 // All requests use credentials: 'include' so the browser automatically
@@ -12,11 +12,16 @@ const request = async (path, options = {}) => {
     ...options,
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(res.ok ? 'Invalid response from the server' : 'The server is currently unavailable');
+  }
 
   if (!res.ok) {
     // Throw the message from the backend so it can be shown in the UI
-    throw new Error(data.message || 'An error occurred');
+    throw new Error(data.message || 'Unable to complete the request');
   }
 
   return data;

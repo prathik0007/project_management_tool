@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import AppNav from './components/AppNav.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Tasks from './pages/Tasks.jsx';
 import ProjectDetails from './pages/ProjectDetails.jsx';
 import Deadlines from './pages/Deadlines.jsx';
@@ -87,11 +88,11 @@ function App() {
       <AppNav />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/deadlines" element={<Deadlines />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/projects" element={<Projects />} />
+        <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+        <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
+        <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>
