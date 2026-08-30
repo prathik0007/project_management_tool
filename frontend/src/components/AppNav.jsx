@@ -1,36 +1,72 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from './Toast.jsx';
 import { Icon } from './Icons.jsx';
 
-const LINKS = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { to: '/projects', label: 'Projects', icon: 'folder' },
-  { to: '/tasks', label: 'Tasks', icon: 'check' },
-  { to: '/deadlines', label: 'Deadlines', icon: 'clock' },
+const navItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { path: '/projects', label: 'Projects', icon: 'folder' },
+  { path: '/tasks', label: 'Tasks', icon: 'check' },
+  { path: '/deadlines', label: 'Deadlines', icon: 'calendar' },
 ];
 
-function getPageTitle(pathname) {
-  if (pathname.startsWith('/projects/')) return 'Project Details';
-  switch (pathname) {
-    case '/dashboard':
-      return 'Dashboard';
-    case '/projects':
-      return 'Projects';
-    case '/tasks':
-      return 'Tasks';
-    case '/deadlines':
-      return 'Deadlines';
-    default:
-      return 'ProjectFlow';
-  }
-}
+function AppNav({ onOpenQuickCreate, onOpenSearch }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-function SidebarContent({ user, onLogout, onNavigate }) {
-  return (
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false);
+    setShowNotifications(false);
+  }, [location.pathname]);
+
+  // Handle ESC key to close drawer/dropdowns
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        setShowNotifications(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      showToast('Logged out successfully', 'info');
+      navigate('/login');
+    } catch {
+      showToast('Error during logout', 'error');
+    }
+  };
+
+  const currentPageTitle = (() => {
+    if (location.pathname.startsWith('/projects/')) return 'Project Details';
+    if (location.pathname === '/dashboard') return 'Dashboard';
+    if (location.pathname === '/projects') return 'Projects';
+    if (location.pathname === '/tasks') return 'Tasks';
+    if (location.pathname === '/deadlines') return 'Deadlines & Milestones';
+    return 'ProjectFlow';
+  })();
+
+  const userInitials = (user?.name || user?.email || 'PF')
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const renderSidebarContent = () => (
     <>
       <div className="sidebar-brand-wrapper">
-        <Link className="sidebar-brand" to="/dashboard" onClick={onNavigate}>
+        <Link to="/dashboard" className="sidebar-brand" aria-label="ProjectFlow Home">
           <span className="sidebar-brand-mark">
             <Icon name="spark" size={18} />
           </span>
@@ -38,125 +74,167 @@ function SidebarContent({ user, onLogout, onNavigate }) {
         </Link>
       </div>
 
-      <div className="sidebar-section-label">Navigation</div>
-
-      <nav className="sidebar-links" aria-label="Main navigation">
-        {LINKS.map((link) => (
+      <div className="sidebar-section-label">WORKSPACE</div>
+      <nav className="sidebar-links" aria-label="Main Navigation">
+        {navItems.map((item) => (
           <NavLink
-            key={link.to}
-            to={link.to}
-            onClick={onNavigate}
-            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `sidebar-link ${isActive ? 'active' : ''}`
+            }
           >
-            <Icon name={link.icon} size={18} />
-            <span>{link.label}</span>
+            <Icon name={item.icon} size={18} />
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
+      <div className="sidebar-section-label" style={{ marginTop: '1.5rem' }}>
+        SYSTEM
+      </div>
+      <nav className="sidebar-links" aria-label="System Links">
+        <button
+          type="button"
+          className="sidebar-link sidebar-btn-link"
+          onClick={() => {
+            showToast('Settings & Workspace preferences are up to date.', 'info');
+            setDrawerOpen(false);
+          }}
+        >
+          <Icon name="settings" size={18} />
+          <span>Settings</span>
+        </button>
+      </nav>
+
       <div className="sidebar-footer">
-        {user ? (
-          <div className="sidebar-user-block">
-            <div className="sidebar-profile">
-              <span className="sidebar-avatar" aria-hidden="true">
-                {(user.name || 'U').charAt(0).toUpperCase()}
-              </span>
-              <div className="sidebar-profile-meta">
-                <strong className="sidebar-user-name">{user.name}</strong>
-                <span className="sidebar-user-email">{user.email}</span>
-              </div>
+        <div className="sidebar-user-block">
+          <div className="sidebar-profile">
+            <div className="sidebar-avatar">{userInitials}</div>
+            <div className="sidebar-profile-meta">
+              <span className="sidebar-user-name">{user?.name || 'Workspace User'}</span>
+              <span className="sidebar-user-email">{user?.email || ''}</span>
             </div>
-            <button className="sidebar-logout-btn" onClick={onLogout} aria-label="Logout of account">
-              <Icon name="logout" size={16} />
-              <span>Logout</span>
-            </button>
           </div>
-        ) : (
-          <Link className="sidebar-link" to="/login" onClick={onNavigate}>
-            <Icon name="user" size={18} />
-            <span>Sign In</span>
-          </Link>
-        )}
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Sign out of ProjectFlow"
+          >
+            <Icon name="logout" size={15} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </div>
     </>
   );
-}
-
-export default function AppNav() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const pageTitle = getPageTitle(location.pathname);
-
-  // Close mobile drawer on ESC key & manage scroll lock
-  useEffect(() => {
-    if (!drawerOpen) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') setDrawerOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [drawerOpen]);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const closeDrawer = () => setDrawerOpen(false);
-
-  if (isAuthPage) return null;
 
   return (
     <>
-      {/* Top Header Bar for Desktop and Tablet/Mobile */}
+      {/* Desktop Fixed Sidebar */}
+      <aside className="sidebar desktop-only" aria-label="Sidebar">
+        {renderSidebarContent()}
+      </aside>
+
+      {/* Mobile Drawer */}
+      {drawerOpen && (
+        <div
+          className="drawer-overlay"
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={`sidebar sidebar--drawer ${drawerOpen ? 'open' : ''}`} aria-label="Mobile Navigation">
+        <button
+          type="button"
+          className="drawer-close"
+          onClick={() => setDrawerOpen(false)}
+          aria-label="Close navigation menu"
+        >
+          <Icon name="x" size={20} />
+        </button>
+        {renderSidebarContent()}
+      </aside>
+
+      {/* Top Bar Header */}
       <header className="app-topbar">
         <div className="topbar-left">
           <button
+            type="button"
             className="mobile-menu-btn"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open navigation menu"
-            aria-expanded={drawerOpen}
           >
             <Icon name="menu" size={20} />
           </button>
-          <div className="topbar-title-area">
-            <h2 className="topbar-page-title">{pageTitle}</h2>
-          </div>
+          <span className="topbar-page-title">{currentPageTitle}</span>
         </div>
 
         <div className="topbar-right">
-          {user && (
-            <div className="topbar-user-badge">
-              <span className="topbar-user-avatar">
-                {(user.name || 'U').charAt(0).toUpperCase()}
-              </span>
-              <span className="topbar-user-name">{user.name}</span>
-            </div>
+          {/* Quick Search Button */}
+          {onOpenSearch && (
+            <button
+              type="button"
+              className="topbar-search-trigger"
+              onClick={onOpenSearch}
+              title="Search projects and tasks (Ctrl+K)"
+            >
+              <Icon name="search" size={15} />
+              <span className="search-placeholder-text">Quick search...</span>
+              <kbd className="search-kbd-badge">Ctrl K</kbd>
+            </button>
           )}
+
+          {/* Quick Action Button */}
+          {onOpenQuickCreate && (
+            <button
+              type="button"
+              className="btn-primary btn-sm topbar-create-btn"
+              onClick={onOpenQuickCreate}
+            >
+              <Icon name="plus" size={14} />
+              <span>New Task</span>
+            </button>
+          )}
+
+          {/* Notifications Trigger */}
+          <div className="topbar-notifications-wrapper">
+            <button
+              type="button"
+              className="icon-action-btn topbar-bell-btn"
+              onClick={() => setShowNotifications(!showNotifications)}
+              aria-label="Notifications"
+            >
+              <Icon name="bell" size={18} />
+            </button>
+
+            {showNotifications && (
+              <div className="notifications-dropdown">
+                <div className="notifications-header">
+                  <h4>Notifications</h4>
+                  <span className="badge-count">All caught up</span>
+                </div>
+                <div className="notifications-body">
+                  <div className="notification-empty">
+                    <Icon name="check" size={24} />
+                    <p>No unread notifications</p>
+                    <span>You're all up to date with tasks and project deadlines!</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Badge */}
+          <div className="topbar-user-badge" title={user?.email}>
+            <div className="topbar-user-avatar">{userInitials}</div>
+            <span className="topbar-user-name">{user?.name?.split(' ')[0] || 'User'}</span>
+          </div>
         </div>
       </header>
-
-      {/* Desktop Sidebar */}
-      <aside className="sidebar">
-        <SidebarContent user={user} onLogout={handleLogout} onNavigate={() => {}} />
-      </aside>
-
-      {/* Mobile Drawer Navigation */}
-      {drawerOpen && <div className="drawer-overlay" onClick={closeDrawer} />}
-      <aside className={`sidebar sidebar--drawer${drawerOpen ? ' open' : ''}`}>
-        <button className="drawer-close" onClick={closeDrawer} aria-label="Close navigation menu">
-          <Icon name="x" size={18} />
-        </button>
-        <SidebarContent user={user} onLogout={handleLogout} onNavigate={closeDrawer} />
-      </aside>
     </>
   );
 }
+
+export default AppNav;

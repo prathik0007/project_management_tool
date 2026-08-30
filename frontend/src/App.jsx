@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import AppNav from './components/AppNav.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
+import TaskForm from './components/TaskForm.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -85,14 +87,48 @@ function Home() {
   );
 }
 
-// ─── Authenticated App Layout (Sidebar + Main View) ──────────────────────────
+// ─── Authenticated App Layout (Sidebar + Topbar + Command Palette + Quick Create) ───
 function AppLayout({ children }) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="app-shell">
-      <AppNav />
-      <div className="app-main-content">
+      <AppNav
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenQuickCreate={() => setIsQuickTaskOpen(true)}
+      />
+      <main className="app-main-content">
         {children}
-      </div>
+      </main>
+
+      {/* Global Quick Search (Ctrl+K) */}
+      <CommandPalette
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
+
+      {/* Quick Task Creation Modal */}
+      {isQuickTaskOpen && (
+        <TaskForm
+          onSuccess={() => {
+            setIsQuickTaskOpen(false);
+            window.dispatchEvent(new CustomEvent('projectflow:refresh'));
+          }}
+          onClose={() => setIsQuickTaskOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -104,11 +140,11 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Standalone Authentication Pages (No Sidebar, Perfectly Centered) */}
+            {/* Standalone Authentication Pages (No Sidebar, Centered Card) */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* Standalone Test / Verification Landing Route */}
+            {/* Standalone Verification Landing Route */}
             <Route path="/" element={<Home />} />
 
             {/* Authenticated Application Workspace Routes */}

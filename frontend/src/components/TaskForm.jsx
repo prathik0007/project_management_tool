@@ -2,43 +2,65 @@ import { useEffect, useState } from 'react';
 import { tasksAPI, projectsAPI, usersAPI } from '../services/api.js';
 import { Icon } from './Icons.jsx';
 
-function TaskForm({ onSuccess, editTask = null, onCancel }) {
-  const isEditing = Boolean(editTask);
+function TaskForm({
+  task = null,
+  editTask = null,
+  projectId: initialProjectId = '',
+  projects: propProjects = null,
+  users: propUsers = null,
+  onSuccess,
+  onClose,
+  onCancel,
+}) {
+  const currentTask = task || editTask;
+  const isEditing = Boolean(currentTask);
+  const handleClose = onClose || onCancel;
 
-  const [title, setTitle] = useState(editTask?.title || '');
-  const [description, setDescription] = useState(editTask?.description || '');
-  const [projectId, setProjectId] = useState(editTask?.project?._id || editTask?.project || '');
-  const [assignedTo, setAssignedTo] = useState(editTask?.assignedTo?._id || editTask?.assignedTo || '');
-  const [status, setStatus] = useState(editTask?.status || 'todo');
-  const [priority, setPriority] = useState(editTask?.priority || 'medium');
+  const [title, setTitle] = useState(currentTask?.title || '');
+  const [description, setDescription] = useState(currentTask?.description || '');
+  const [projectId, setProjectId] = useState(
+    currentTask?.project?._id ||
+    currentTask?.project?.id ||
+    currentTask?.project ||
+    currentTask?.projectId ||
+    initialProjectId ||
+    ''
+  );
+  const [assignedTo, setAssignedTo] = useState(
+    currentTask?.assignedTo?._id || currentTask?.assignedTo?.id || currentTask?.assignedTo || ''
+  );
+  const [status, setStatus] = useState(currentTask?.status || 'todo');
+  const [priority, setPriority] = useState(currentTask?.priority || 'medium');
   const [dueDate, setDueDate] = useState(
-    editTask?.dueDate ? editTask.dueDate.slice(0, 10) : ''
+    currentTask?.dueDate ? currentTask.dueDate.slice(0, 10) : ''
   );
 
-  const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
+  const [projectsList, setProjectsList] = useState(propProjects || []);
+  const [usersList, setUsersList] = useState(propUsers || []);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(!propProjects || !propUsers);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const loadDropdownData = async () => {
-      try {
-        const [projectsData, usersData] = await Promise.all([
-          projectsAPI.getAll(),
-          usersAPI.getAll(),
-        ]);
-        setProjects(projectsData.projects || []);
-        setUsers(usersData.users || []);
-      } catch {
-        setError('Failed to load projects or users list.');
-      } finally {
-        setLoadingDropdowns(false);
-      }
-    };
-    loadDropdownData();
-  }, []);
+    if (!propProjects || !propUsers) {
+      const loadDropdownData = async () => {
+        try {
+          const [projectsData, usersData] = await Promise.all([
+            projectsAPI.getAll().catch(() => ({ projects: [] })),
+            usersAPI.getAll().catch(() => ({ users: [] })),
+          ]);
+          setProjectsList(projectsData.projects || []);
+          setUsersList(usersData.users || []);
+        } catch {
+          setError('Failed to load project or user assignment list.');
+        } finally {
+          setLoadingDropdowns(false);
+        }
+      };
+      loadDropdownData();
+    }
+  }, [propProjects, propUsers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,22 +77,23 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
 
     setSubmitting(true);
     try {
+      const normalizedStatus = status === 'in_progress' ? 'in-progress' : status;
       const payload = {
         title: title.trim(),
         description: description.trim(),
         assignedTo: assignedTo || null,
-        status,
+        status: normalizedStatus,
         priority,
         dueDate: dueDate || null,
       };
 
       if (isEditing) {
-        await tasksAPI.update(editTask._id, payload);
+        await tasksAPI.update(currentTask._id || currentTask.id, payload);
       } else {
         await tasksAPI.create({ ...payload, project: projectId });
       }
 
-      onSuccess();
+      if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || 'Unable to save task.');
     } finally {
@@ -79,7 +102,7 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-card modal-card-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title-group">
@@ -88,8 +111,8 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
             </span>
             <h3>{isEditing ? 'Edit Task' : 'Create New Task'}</h3>
           </div>
-          {onCancel && (
-            <button className="modal-close-btn" onClick={onCancel} aria-label="Close dialog">
+          {handleClose && (
+            <button className="modal-close-btn" onClick={handleClose} aria-label="Close dialog">
               <Icon name="x" size={18} />
             </button>
           )}
@@ -116,8 +139,9 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Implement authentication middleware"
+                placeholder="e.g. Implement real-time notifications"
                 required
+                autoFocus
               />
             </div>
 
@@ -127,7 +151,7 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
                 id="task-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide detailed instructions or acceptance criteria..."
+                placeholder="Detailed instructions or deliverable notes..."
                 rows={3}
               />
             </div>
@@ -143,8 +167,8 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
                     required
                   >
                     <option value="">— Select a project —</option>
-                    {projects.map((p) => (
-                      <option key={p._id} value={p._id}>
+                    {projectsList.map((p) => (
+                      <option key={p._id || p.id} value={p._id || p.id}>
                         {p.name}
                       </option>
                     ))}
@@ -160,8 +184,8 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
                   onChange={(e) => setAssignedTo(e.target.value)}
                 >
                   <option value="">— Unassigned —</option>
-                  {users.map((u) => (
-                    <option key={u._id} value={u._id}>
+                  {usersList.map((u) => (
+                    <option key={u._id || u.id} value={u._id || u.id}>
                       {u.name} ({u.email})
                     </option>
                   ))}
@@ -183,20 +207,18 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
                 </select>
               </div>
 
-              {isEditing && (
-                <div className="form-group">
-                  <label htmlFor="task-status">Status</label>
-                  <select
-                    id="task-status"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              )}
+              <div className="form-group">
+                <label htmlFor="task-status">Status</label>
+                <select
+                  id="task-status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="todo">To Do</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
 
               <div className="form-group">
                 <label htmlFor="task-due">Due Date</label>
@@ -210,13 +232,22 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
             </div>
 
             <div className="modal-footer">
-              {onCancel && (
-                <button type="button" className="btn-secondary" onClick={onCancel}>
+              {handleClose && (
+                <button type="button" className="btn-secondary" onClick={handleClose} disabled={submitting}>
                   Cancel
                 </button>
               )}
-              <button type="submit" className="btn-primary" disabled={submitting}>
-                {submitting ? 'Saving Task...' : isEditing ? 'Update Task' : 'Create Task'}
+              <button type="submit" className="btn-primary" disabled={submitting || !title.trim()}>
+                {submitting ? (
+                  <>
+                    <span className="btn-spinner" />
+                    <span>Saving Task...</span>
+                  </>
+                ) : isEditing ? (
+                  'Save Changes'
+                ) : (
+                  'Create Task'
+                )}
               </button>
             </div>
           </form>

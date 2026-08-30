@@ -1,333 +1,535 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { projectsAPI, tasksAPI } from '../services/api.js';
-import SummaryCard from '../components/SummaryCard.jsx';
-import ProjectProgress from '../components/ProjectProgress.jsx';
-import EmptyState from '../components/EmptyState.jsx';
-import Skeletons from '../components/Skeletons.jsx';
-import TaskItem from '../components/TaskItem.jsx';
-import TaskForm from '../components/TaskForm.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { projectsAPI, tasksAPI, usersAPI } from '../services/api.js';
 import { Icon } from '../components/Icons.jsx';
+import TaskForm from '../components/TaskForm.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import { SkeletonStat, SkeletonCard, SkeletonRow } from '../components/Skeletons.jsx';
 
-function greeting() {
+function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
 }
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const toast = useToast();
+function formatDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isOverdue(dueDate, status) {
+  if (!dueDate || status === 'completed' || status === 'done') return false;
+  const due = new Date(dueDate);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return due < now;
+}
+
+export default function Dashboard() {
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Modals
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showTaskModal, setShowTaskModal] = useState(false);
-
-  // Form states
+  // Modals state
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [projectError, setProjectError] = useState('');
+  const [projectDesc, setProjectDesc] = useState('');
+  const [savingProject, setSavingProject] = useState(false);
 
-  const loadDashboardData = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const loadData = useCallback(async () => {
     try {
-      const [projectsData, tasksData, deadlinesData] = await Promise.all([
-        projectsAPI.getAll(),
-        tasksAPI.getAll(),
-        tasksAPI.getDeadlines(),
+      const [projRes, taskRes, deadRes, userRes] = await Promise.all([
+        projectsAPI.getAll().catch(() => ({ projects: [] })),
+        tasksAPI.getAll().catch(() => ({ tasks: [] })),
+        tasksAPI.getDeadlines().catch(() => ({ deadlines: [] })),
+        usersAPI.getAll().catch(() => ({ users: [] })),
       ]);
-
-      const projectList = projectsData.projects || [];
-      const summaries = await Promise.all(
-        projectList.map(async (project) => {
-          try {
-            return await projectsAPI.getSummary(project._id);
-          } catch {
-            return {
-              project,
-              totalTasks: 0,
-              completedTasks: 0,
-              inProgressTasks: 0,
-              todoTasks: 0,
-              progress: 0,
-              overdueTasks: 0,
-              upcomingTasks: 0,
-            };
-          }
-        })
-      );
-
-      setProjects(summaries);
-      setTasks(tasksData.tasks || []);
-      setDeadlines(deadlinesData.tasks || []);
-    } catch (err) {
-      setError('Unable to load dashboard data. Please try again.');
+      setProjects(projRes.projects || []);
+      setTasks(taskRes.tasks || []);
+      setDeadlines(deadRes.deadlines || deadRes.tasks || []);
+      setUsers(userRes.users || []);
+    } catch {
+      setError('Unable to load workspace data. Please refresh.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadData();
+  }, [loadData]);
 
-  const handleCreateProject = async (event) => {
-    event.preventDefault();
-    if (!projectName.trim()) return setProjectError('Project name is required.');
+  // Statistics calculation
+  const totalProjects = projects.length;
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.status === 'completed' || t.status === 'done').length;
+  const inProgressTasks = tasks.filter((t) => t.status === 'in_progress' || t.status === 'in-progress').length;
+  const overdueTasksCount = tasks.filter((t) => isOverdue(t.dueDate, t.status)).length;
 
-    setCreatingProject(true);
-    setProjectError('');
+  const handleCreateProject = async (e) => {
+    e.preventDefault();
+    if (!projectName.trim()) {
+      showToast('Project name is required', 'error');
+      return;
+    }
+    setSavingProject(true);
     try {
-      await projectsAPI.create({
-        name: projectName.trim(),
-        description: projectDescription.trim(),
-      });
+      await projectsAPI.create({ name: projectName.trim(), description: projectDesc.trim() });
+      showToast('Project created successfully', 'success');
       setProjectName('');
-      setProjectDescription('');
-      setShowProjectModal(false);
-      toast('Project created successfully', 'success');
-      loadDashboardData();
+      setProjectDesc('');
+      setIsProjectModalOpen(false);
+      loadData();
     } catch (err) {
-      setProjectError(err.message || 'Unable to create project.');
+      showToast(err.message || 'Failed to create project', 'error');
     } finally {
-      setCreatingProject(false);
+      setSavingProject(false);
     }
   };
 
-  // Compute key stats
-  const totalProjectsCount = projects.length;
-  const completedProjectsCount = projects.filter((p) => p.progress === 100).length;
+  const handleToggleTask = async (task) => {
+    const isDone = task.status === 'completed' || task.status === 'done';
+    const newStatus = isDone ? 'todo' : 'completed';
+    try {
+      await tasksAPI.update(task._id || task.id, { status: newStatus });
+      showToast(isDone ? 'Task marked as To Do' : 'Task completed! 🎉', 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update task', 'error');
+    }
+  };
 
-  const totalTasksCount = tasks.length;
-  const completedTasksCount = tasks.filter((t) => t.status === 'completed').length;
-  const inProgressTasksCount = tasks.filter((t) => t.status === 'in-progress').length;
-  const overdueTasksCount = deadlines.filter((t) => t.deadlineStatus === 'overdue').length;
+  const activeProjects = projects.slice(0, 4);
+  const todaysFocusTasks = tasks
+    .filter((t) => t.status !== 'completed' && t.status !== 'done')
+    .slice(0, 5);
+
+  const upcomingDeadlinesList = (deadlines.length > 0 ? deadlines : tasks.filter((t) => t.dueDate))
+    .filter((t) => t.status !== 'completed' && t.status !== 'done')
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+    .slice(0, 4);
 
   return (
-    <div className="page-container">
-      {/* Dashboard Top Greeting Header */}
-      <div className="dashboard-welcome-header">
+    <div className="page-container dashboard-page">
+      {/* Top Welcome Header */}
+      <header className="page-header dashboard-welcome-header">
         <div className="welcome-text-group">
           <h1>
-            {greeting()}, {user?.name || 'User'}!
+            {getGreeting()}, {user?.name?.split(' ')[0] || 'there'} 👋
           </h1>
-          <p className="page-subtitle">Here is what is happening across your projects today.</p>
+          <p className="page-subtitle">
+            Here's what's happening across your workspace today.
+          </p>
         </div>
         <div className="welcome-actions">
-          <button className="btn-secondary" onClick={() => setShowProjectModal(true)}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setIsProjectModalOpen(true)}
+          >
             <Icon name="plus" size={16} />
             <span>New Project</span>
           </button>
-          <button className="btn-primary" onClick={() => setShowTaskModal(true)}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setIsTaskModalOpen(true)}
+          >
             <Icon name="plus" size={16} />
             <span>Create Task</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {error && (
         <div className="page-error" role="alert">
-          <p>{error}</p>
-          <button className="btn-secondary btn-sm" onClick={loadDashboardData}>
+          <span>{error}</span>
+          <button type="button" className="btn-sm btn-secondary" onClick={loadData}>
             Retry
           </button>
         </div>
       )}
 
-      {/* Metrics Stats Grid */}
-      {loading ? (
-        <div className="dashboard-stats-grid">
-          <Skeletons count={4} type="stat" />
-        </div>
-      ) : (
-        <div className="dashboard-stats-grid">
-          <SummaryCard
-            label="Total Projects"
-            value={totalProjectsCount}
-            subtitle={`${completedProjectsCount} completed`}
-            tone="info"
-            icon="folder"
-          />
-          <SummaryCard
-            label="Total Tasks"
-            value={totalTasksCount}
-            subtitle={`${completedTasksCount} completed`}
-            tone="neutral"
-            icon="check"
-          />
-          <SummaryCard
-            label="In Progress"
-            value={inProgressTasksCount}
-            subtitle="Active tasks"
-            tone="warning"
-            icon="clock"
-          />
-          <SummaryCard
-            label="Overdue Deadlines"
-            value={overdueTasksCount}
-            subtitle={overdueTasksCount > 0 ? 'Action required' : 'All up to date'}
-            tone={overdueTasksCount > 0 ? 'danger' : 'success'}
-            icon="alert"
-          />
-        </div>
-      )}
-
-      {/* Main Dashboard Layout */}
-      <div className="dashboard-content-grid">
-        {/* Left Column: Projects Overview */}
-        <section className="dashboard-section card">
-          <div className="section-title-bar">
-            <div className="section-title-left">
-              <Icon name="folder" size={18} />
-              <h2>Active Projects</h2>
-            </div>
-            <Link to="/projects" className="view-all-link">
-              View All ({projects.length}) →
-            </Link>
-          </div>
-
-          {loading ? (
-            <Skeletons count={2} type="card" />
-          ) : projects.length === 0 ? (
-            <EmptyState
-              icon="folder"
-              title="No projects yet"
-              message="Create your first project to start tracking tasks and deadlines."
-              action={
-                <button className="btn-primary btn-sm" onClick={() => setShowProjectModal(true)}>
-                  Create Project
-                </button>
-              }
-            />
-          ) : (
-            <div className="projects-grid-dashboard">
-              {projects.slice(0, 4).map(({ project, progress, totalTasks, completedTasks }) => (
-                <div
-                  key={project._id}
-                  className="dashboard-project-card"
-                  onClick={() => navigate(`/projects/${project._id}`)}
-                >
-                  <div className="dashboard-project-header">
-                    <h4>{project.name}</h4>
-                    <span className="project-task-count">
-                      {completedTasks}/{totalTasks} tasks
-                    </span>
-                  </div>
-                  {project.description && (
-                    <p className="dashboard-project-desc">{project.description}</p>
-                  )}
-                  <ProjectProgress progress={progress} showLabel={false} />
+      {/* 4 Statistics Metrics Cards */}
+      <section className="dashboard-stats-grid" aria-label="Workspace Metrics">
+        {loading ? (
+          <>
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+          </>
+        ) : (
+          <>
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-card-label">Total Projects</span>
+                <div className="stat-card-icon-box stat-badge-info">
+                  <Icon name="folder" size={16} />
                 </div>
-              ))}
+              </div>
+              <div className="stat-card-value">{totalProjects}</div>
+              <span className="stat-card-subtitle">
+                {totalProjects === 1 ? '1 active project' : `${totalProjects} active initiatives`}
+              </span>
             </div>
-          )}
-        </section>
 
-        {/* Right Column: Recent Tasks & Upcoming Deadlines */}
-        <div className="dashboard-right-column">
-          <section className="dashboard-section card">
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-card-label">Total Tasks</span>
+                <div className="stat-card-icon-box stat-badge-neutral">
+                  <Icon name="layers" size={16} />
+                </div>
+              </div>
+              <div className="stat-card-value">{totalTasks}</div>
+              <span className="stat-card-subtitle">
+                {completedTasks} completed ({totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%)
+              </span>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-card-label">In Progress</span>
+                <div className="stat-card-icon-box stat-badge-warning">
+                  <Icon name="clock" size={16} />
+                </div>
+              </div>
+              <div className="stat-card-value">{inProgressTasks}</div>
+              <span className="stat-card-subtitle">Tasks actively being worked on</span>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-card-label">Overdue Tasks</span>
+                <div className={`stat-card-icon-box ${overdueTasksCount > 0 ? 'stat-badge-danger' : 'stat-badge-success'}`}>
+                  <Icon name={overdueTasksCount > 0 ? 'alert' : 'check'} size={16} />
+                </div>
+              </div>
+              <div className="stat-card-value" style={{ color: overdueTasksCount > 0 ? '#ef4444' : '#22c55e' }}>
+                {overdueTasksCount}
+              </div>
+              <span className="stat-card-subtitle">
+                {overdueTasksCount > 0 ? 'Requires immediate attention' : 'All deadlines on track'}
+              </span>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Main Content Layout Grid */}
+      <div className="dashboard-content-grid">
+        {/* Left Column: Active Projects & Today's Focus */}
+        <div className="dashboard-column-left">
+          {/* Active Projects */}
+          <section className="dashboard-section card" style={{ marginBottom: '1.5rem' }}>
             <div className="section-title-bar">
               <div className="section-title-left">
-                <Icon name="check" size={18} />
-                <h2>Recent Tasks</h2>
+                <Icon name="folder" size={18} />
+                <h2>Active Projects</h2>
               </div>
-              <Link to="/tasks" className="view-all-link">
-                View Tasks →
+              <Link to="/projects" className="view-all-link">
+                View All ({projects.length}) →
               </Link>
             </div>
 
             {loading ? (
-              <Skeletons count={3} rows />
-            ) : tasks.length === 0 ? (
+              <div className="skeleton-grid-cards">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            ) : activeProjects.length === 0 ? (
               <EmptyState
-                icon="check"
-                title="No tasks found"
-                message="Create a task to keep your team organized."
+                icon="folder"
+                title="No projects yet"
+                message="Create your first project and start organizing your team's work."
+                actionLabel="+ Create Project"
+                onAction={() => setIsProjectModalOpen(true)}
               />
             ) : (
-              <div className="dashboard-tasks-list">
-                {tasks.slice(0, 5).map((task) => (
-                  <TaskItem key={task._id} task={task} onRefresh={loadDashboardData} viewMode="list" />
-                ))}
+              <div className="projects-grid-dashboard">
+                {activeProjects.map((project) => {
+                  const pTasks = tasks.filter((t) => {
+                    const tProjId = t.project?._id || t.project?.id || t.project || t.projectId;
+                    const pId = project._id || project.id;
+                    return String(tProjId) === String(pId);
+                  });
+                  const pDone = pTasks.filter((t) => t.status === 'completed' || t.status === 'done').length;
+                  const percent = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : 0;
+
+                  return (
+                    <Link
+                      key={project._id || project.id}
+                      to={`/projects/${project._id || project.id}`}
+                      className="dashboard-project-card"
+                    >
+                      <div className="dashboard-project-header">
+                        <h4>{project.name}</h4>
+                        <span className="project-task-count">
+                          {pDone}/{pTasks.length} tasks
+                        </span>
+                      </div>
+                      <p className="dashboard-project-desc">
+                        {project.description || 'No description provided.'}
+                      </p>
+                      <div className="progress-track" style={{ height: '6px' }}>
+                        <div
+                          className="progress-fill progress-fill-normal"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Today's Focus Tasks */}
+          <section className="dashboard-section card">
+            <div className="section-title-bar">
+              <div className="section-title-left">
+                <Icon name="check" size={18} />
+                <h2>Today's Focus</h2>
+              </div>
+              <Link to="/tasks" className="view-all-link">
+                All Tasks ({tasks.length}) →
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="skeleton-list-rows">
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+              </div>
+            ) : todaysFocusTasks.length === 0 ? (
+              <div className="empty-sub-block">
+                <Icon name="check" size={24} />
+                <p>No pending tasks on your focus list.</p>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => setIsTaskModalOpen(true)}
+                >
+                  + Add a task
+                </button>
+              </div>
+            ) : (
+              <div className="dashboard-task-list">
+                {todaysFocusTasks.map((task) => {
+                  const overdue = isOverdue(task.dueDate, task.status);
+                  const isDone = task.status === 'completed' || task.status === 'done';
+
+                  return (
+                    <div key={task._id || task.id} className="dashboard-task-item">
+                      <button
+                        type="button"
+                        className={`status-circle-btn ${isDone ? 'completed' : ''}`}
+                        onClick={() => handleToggleTask(task)}
+                        title={isDone ? 'Mark as incomplete' : 'Mark complete'}
+                      >
+                        {isDone && <Icon name="check" size={12} />}
+                      </button>
+
+                      <div className="dashboard-task-info">
+                        <span className="dashboard-task-title">{task.title}</span>
+                        <div className="dashboard-task-meta">
+                          {task.project?.name && (
+                            <span className="task-meta-tag">{task.project.name}</span>
+                          )}
+                          <span className={`badge badge-${task.priority || 'medium'}`}>
+                            {task.priority || 'medium'}
+                          </span>
+                          {task.dueDate && (
+                            <span className={`task-date-tag ${overdue ? 'date-overdue' : ''}`}>
+                              <Icon name="calendar" size={12} />
+                              {formatDate(task.dueDate)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
+
+        {/* Right Column: Upcoming Deadlines & Recent Activity */}
+        <div className="dashboard-column-right">
+          {/* Upcoming Deadlines */}
+          <section className="dashboard-section card" style={{ marginBottom: '1.5rem' }}>
+            <div className="section-title-bar">
+              <div className="section-title-left">
+                <Icon name="calendar" size={18} />
+                <h2>Upcoming Deadlines</h2>
+              </div>
+              <Link to="/deadlines" className="view-all-link">
+                View Schedule →
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="skeleton-list-rows">
+                <SkeletonRow />
+                <SkeletonRow />
+              </div>
+            ) : upcomingDeadlinesList.length === 0 ? (
+              <div className="empty-sub-block">
+                <Icon name="calendar" size={24} />
+                <p>No upcoming task deadlines scheduled.</p>
+              </div>
+            ) : (
+              <div className="deadline-widget-list">
+                {upcomingDeadlinesList.map((item) => {
+                  const overdue = isOverdue(item.dueDate, item.status);
+                  return (
+                    <div key={item._id || item.id} className="deadline-widget-item">
+                      <div className="deadline-widget-main">
+                        <span className="deadline-widget-title">{item.title}</span>
+                        <span className="deadline-widget-proj">
+                          {item.project?.name || 'General Task'}
+                        </span>
+                      </div>
+                      <div className={`deadline-widget-pill ${overdue ? 'pill-overdue' : 'pill-upcoming'}`}>
+                        <Icon name={overdue ? 'alert' : 'clock'} size={13} />
+                        <span>{formatDate(item.dueDate)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Activity / Workspace Stream */}
+          <section className="dashboard-section card">
+            <div className="section-title-bar">
+              <div className="section-title-left">
+                <Icon name="activity" size={18} />
+                <h2>Workspace Stream</h2>
+              </div>
+              <span className="badge-live">Live</span>
+            </div>
+
+            <div className="activity-feed">
+              <div className="activity-item">
+                <div className="activity-dot dot-active" />
+                <div className="activity-content">
+                  <p><strong>Workspace session active</strong></p>
+                  <span>Connected to ProjectFlow workspace database.</span>
+                </div>
+              </div>
+
+              {tasks.slice(0, 3).map((t) => (
+                <div key={t._id || t.id} className="activity-item">
+                  <div className="activity-dot dot-cyan" />
+                  <div className="activity-content">
+                    <p>
+                      Task <strong>{t.title}</strong> is in <em>{t.status?.replace('_', ' ') || 'todo'}</em> status
+                    </p>
+                    <span>Priority: {t.priority || 'medium'}</span>
+                  </div>
+                </div>
+              ))}
+
+              {projects.slice(0, 2).map((p) => (
+                <div key={p._id || p.id} className="activity-item">
+                  <div className="activity-dot dot-proj" />
+                  <div className="activity-content">
+                    <p>Project <strong>{p.name}</strong> ready in workspace</p>
+                    <span>{p.description || 'Project initiative active'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
 
-      {/* Modal: Create Project */}
-      {showProjectModal && (
-        <div className="modal-overlay" onClick={() => setShowProjectModal(false)}>
+      {/* Create Project Modal */}
+      {isProjectModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsProjectModalOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title-group">
-                <span className="modal-icon-badge">
+                <div className="modal-icon-badge">
                   <Icon name="folder" size={18} />
-                </span>
+                </div>
                 <h3>Create New Project</h3>
               </div>
               <button
+                type="button"
                 className="modal-close-btn"
-                onClick={() => setShowProjectModal(false)}
-                aria-label="Close modal"
+                onClick={() => setIsProjectModalOpen(false)}
+                aria-label="Close"
               >
                 <Icon name="x" size={18} />
               </button>
             </div>
 
-            <form className="modal-body" onSubmit={handleCreateProject}>
-              {projectError && (
-                <div className="form-error-alert" role="alert">
-                  <Icon name="alert" size={16} />
-                  <span>{projectError}</span>
+            <form onSubmit={handleCreateProject}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="projectName">Project Name *</label>
+                  <input
+                    id="projectName"
+                    type="text"
+                    required
+                    placeholder="e.g. Mobile App Redesign"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    autoFocus
+                  />
                 </div>
-              )}
 
-              <div className="form-group">
-                <label htmlFor="modal-project-name">Project Name *</label>
-                <input
-                  id="modal-project-name"
-                  type="text"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="e.g. Website Redesign Q3"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="modal-project-desc">Description</label>
-                <textarea
-                  id="modal-project-desc"
-                  value={projectDescription}
-                  onChange={(e) => setProjectDescription(e.target.value)}
-                  placeholder="Summary of objectives and scope..."
-                  rows={3}
-                />
+                <div className="form-group">
+                  <label htmlFor="projectDesc">Description</label>
+                  <textarea
+                    id="projectDesc"
+                    rows={3}
+                    placeholder="Briefly describe the goals and scope of this project..."
+                    value={projectDesc}
+                    onChange={(e) => setProjectDesc(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="modal-footer">
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => setShowProjectModal(false)}
+                  onClick={() => setIsProjectModalOpen(false)}
+                  disabled={savingProject}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={creatingProject}>
-                  {creatingProject ? 'Creating...' : 'Create Project'}
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={savingProject || !projectName.trim()}
+                >
+                  {savingProject ? (
+                    <>
+                      <span className="btn-spinner" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    'Create Project'
+                  )}
                 </button>
               </div>
             </form>
@@ -335,19 +537,18 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Modal: Create Task */}
-      {showTaskModal && (
+      {/* Create Task Modal */}
+      {isTaskModalOpen && (
         <TaskForm
+          projects={projects}
+          users={users}
           onSuccess={() => {
-            setShowTaskModal(false);
-            toast('Task created successfully', 'success');
-            loadDashboardData();
+            setIsTaskModalOpen(false);
+            loadData();
           }}
-          onCancel={() => setShowTaskModal(false)}
+          onClose={() => setIsTaskModalOpen(false)}
         />
       )}
     </div>
   );
 }
-
-export default Dashboard;
