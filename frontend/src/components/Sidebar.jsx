@@ -32,49 +32,51 @@ export default function Sidebar({ isOpen, onClose }) {
     .slice(0, 2)
     .toUpperCase();
 
-  const content = (
-    <>
+  const sidebarContent = (
+    <div className="sidebar-inner-content">
       <div className="sidebar-brand-wrapper">
         <Link to="/dashboard" className="sidebar-brand" onClick={onClose} aria-label="ProjectFlow Home">
           <span className="sidebar-brand-mark">
-            <Icon name="spark" size={18} />
+            <Icon name="spark" size={20} />
           </span>
           <span className="sidebar-brand-text">ProjectFlow</span>
         </Link>
       </div>
 
-      <div className="sidebar-section-label">WORKSPACE</div>
-      <nav className="sidebar-links" aria-label="Main Navigation">
-        {navItems.map((item) => (
+      <div className="sidebar-nav-group">
+        <div className="sidebar-section-label">WORKSPACE</div>
+        <nav className="sidebar-links" aria-label="Main Navigation">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? 'active' : ''}`
+              }
+            >
+              <Icon name={item.icon} size={19} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+
+      <div className="sidebar-nav-group" style={{ marginTop: '1.75rem' }}>
+        <div className="sidebar-section-label">SYSTEM</div>
+        <nav className="sidebar-links" aria-label="System Links">
           <NavLink
-            key={item.path}
-            to={item.path}
+            to="/settings"
             onClick={onClose}
             className={({ isActive }) =>
               `sidebar-link ${isActive ? 'active' : ''}`
             }
           >
-            <Icon name={item.icon} size={18} />
-            <span>{item.label}</span>
+            <Icon name="settings" size={19} />
+            <span>Settings</span>
           </NavLink>
-        ))}
-      </nav>
-
-      <div className="sidebar-section-label" style={{ marginTop: '1.5rem' }}>
-        SYSTEM
+        </nav>
       </div>
-      <nav className="sidebar-links" aria-label="System Links">
-        <NavLink
-          to="/settings"
-          onClick={onClose}
-          className={({ isActive }) =>
-            `sidebar-link ${isActive ? 'active' : ''}`
-          }
-        >
-          <Icon name="settings" size={18} />
-          <span>Settings</span>
-        </NavLink>
-      </nav>
 
       <div className="sidebar-footer">
         <div className="sidebar-user-block">
@@ -91,40 +93,42 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={handleLogout}
             title="Sign out of ProjectFlow"
           >
-            <Icon name="logout" size={15} />
+            <Icon name="logout" size={16} />
             <span>Sign Out</span>
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Sticky Sidebar */}
+      {/* Desktop Sticky Sidebar - Exactly ONE instance on Desktop */}
       <aside className="app-sidebar desktop-only" aria-label="Sidebar">
-        {content}
+        {sidebarContent}
       </aside>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer - Conditionally rendered only when isOpen is true */}
       {isOpen && (
-        <div
-          className="drawer-overlay"
-          onClick={onClose}
-          aria-hidden="true"
-        />
+        <div className="mobile-drawer-root">
+          <div
+            className="drawer-overlay"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+          <aside className="app-sidebar app-sidebar--drawer open" aria-label="Mobile Navigation">
+            <button
+              type="button"
+              className="drawer-close"
+              onClick={onClose}
+              aria-label="Close navigation menu"
+            >
+              <Icon name="x" size={20} />
+            </button>
+            {sidebarContent}
+          </aside>
+        </div>
       )}
-      <aside className={`app-sidebar app-sidebar--drawer ${isOpen ? 'open' : ''}`} aria-label="Mobile Navigation">
-        <button
-          type="button"
-          className="drawer-close"
-          onClick={onClose}
-          aria-label="Close navigation menu"
-        >
-          <Icon name="x" size={20} />
-        </button>
-        {content}
-      </aside>
     </>
   );
 }
