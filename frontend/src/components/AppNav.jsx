@@ -1,9 +1,8 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { authAPI } from '../services/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Icon } from './Icons.jsx';
 
-// â”€â”€â”€ App shell: sidebar on desktop, slide-in drawer on mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/projects', label: 'Projects', icon: 'folder' },
@@ -11,40 +10,71 @@ const LINKS = [
   { to: '/deadlines', label: 'Deadlines', icon: 'clock' },
 ];
 
+function getPageTitle(pathname) {
+  if (pathname.startsWith('/projects/')) return 'Project Details';
+  switch (pathname) {
+    case '/dashboard':
+      return 'Dashboard';
+    case '/projects':
+      return 'Projects';
+    case '/tasks':
+      return 'Tasks';
+    case '/deadlines':
+      return 'Deadlines';
+    default:
+      return 'ProjectFlow';
+  }
+}
+
 function SidebarContent({ user, onLogout, onNavigate }) {
   return (
     <>
-      <Link className="sidebar-brand" to="/dashboard" onClick={onNavigate}>
-        <span className="sidebar-brand-mark"><Icon name="spark" size={16} /></span>
-        ProjectFlow
-      </Link>
+      <div className="sidebar-brand-wrapper">
+        <Link className="sidebar-brand" to="/dashboard" onClick={onNavigate}>
+          <span className="sidebar-brand-mark">
+            <Icon name="spark" size={18} />
+          </span>
+          <span className="sidebar-brand-text">ProjectFlow</span>
+        </Link>
+      </div>
+
+      <div className="sidebar-section-label">Navigation</div>
+
       <nav className="sidebar-links" aria-label="Main navigation">
         {LINKS.map((link) => (
-          <NavLink key={link.to} to={link.to} onClick={onNavigate} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-            <Icon name={link.icon} size={17} />
+          <NavLink
+            key={link.to}
+            to={link.to}
+            onClick={onNavigate}
+            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          >
+            <Icon name={link.icon} size={18} />
             <span>{link.label}</span>
           </NavLink>
         ))}
       </nav>
+
       <div className="sidebar-footer">
         {user ? (
-          <>
+          <div className="sidebar-user-block">
             <div className="sidebar-profile">
-              <span className="sidebar-avatar" aria-hidden="true">{(user.name || '?').charAt(0).toUpperCase()}</span>
+              <span className="sidebar-avatar" aria-hidden="true">
+                {(user.name || 'U').charAt(0).toUpperCase()}
+              </span>
               <div className="sidebar-profile-meta">
-                <strong>{user.name}</strong>
-                <span>{user.email}</span>
+                <strong className="sidebar-user-name">{user.name}</strong>
+                <span className="sidebar-user-email">{user.email}</span>
               </div>
             </div>
-            <button className="sidebar-logout" onClick={onLogout}>
+            <button className="sidebar-logout-btn" onClick={onLogout} aria-label="Logout of account">
               <Icon name="logout" size={16} />
               <span>Logout</span>
             </button>
-          </>
+          </div>
         ) : (
           <Link className="sidebar-link" to="/login" onClick={onNavigate}>
-            <Icon name="user" size={17} />
-            <span>Login</span>
+            <Icon name="user" size={18} />
+            <span>Sign In</span>
           </Link>
         )}
       </div>
@@ -55,51 +85,77 @@ function SidebarContent({ user, onLogout, onNavigate }) {
 export default function AppNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    authAPI.getMe().then((data) => setUser(data.user)).catch(() => setUser(null));
-  }, []);
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const pageTitle = getPageTitle(location.pathname);
 
-  // Close the mobile drawer with Escape and lock body scroll while open
+  // Close mobile drawer on ESC key & manage scroll lock
   useEffect(() => {
     if (!drawerOpen) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
   }, [drawerOpen]);
 
-  const logout = async () => {
-    try { await authAPI.logout(); } finally { navigate('/login'); }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
-  const close = () => setDrawerOpen(false);
+  const closeDrawer = () => setDrawerOpen(false);
 
   if (isAuthPage) return null;
 
   return (
     <>
-      {/* Mobile top bar */}
-      <header className="mobile-topbar">
-        <Link className="sidebar-brand" to="/dashboard"><span className="sidebar-brand-mark"><Icon name="spark" size={16} /></span>ProjectFlow</Link>
-        <button className="mobile-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Open navigation menu" aria-expanded={drawerOpen}>
-          <Icon name="menu" size={20} />
-        </button>
+      {/* Top Header Bar for Desktop and Tablet/Mobile */}
+      <header className="app-topbar">
+        <div className="topbar-left">
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={drawerOpen}
+          >
+            <Icon name="menu" size={20} />
+          </button>
+          <div className="topbar-title-area">
+            <h2 className="topbar-page-title">{pageTitle}</h2>
+          </div>
+        </div>
+
+        <div className="topbar-right">
+          {user && (
+            <div className="topbar-user-badge">
+              <span className="topbar-user-avatar">
+                {(user.name || 'U').charAt(0).toUpperCase()}
+              </span>
+              <span className="topbar-user-name">{user.name}</span>
+            </div>
+          )}
+        </div>
       </header>
 
-      {/* Desktop sidebar */}
+      {/* Desktop Sidebar */}
       <aside className="sidebar">
-        <SidebarContent user={user} onLogout={logout} onNavigate={() => { }} />
+        <SidebarContent user={user} onLogout={handleLogout} onNavigate={() => {}} />
       </aside>
 
-      {/* Mobile drawer */}
-      {drawerOpen && <div className="drawer-overlay" onClick={close} />}
+      {/* Mobile Drawer Navigation */}
+      {drawerOpen && <div className="drawer-overlay" onClick={closeDrawer} />}
       <aside className={`sidebar sidebar--drawer${drawerOpen ? ' open' : ''}`}>
-        <button className="drawer-close" onClick={close} aria-label="Close navigation menu"><Icon name="x" size={18} /></button>
-        <SidebarContent user={user} onLogout={logout} onNavigate={close} />
+        <button className="drawer-close" onClick={closeDrawer} aria-label="Close navigation menu">
+          <Icon name="x" size={18} />
+        </button>
+        <SidebarContent user={user} onLogout={handleLogout} onNavigate={closeDrawer} />
       </aside>
     </>
   );

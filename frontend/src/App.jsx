@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import AppNav from './components/AppNav.jsx';
 import { ToastProvider } from './components/Toast.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Tasks from './pages/Tasks.jsx';
 import ProjectDetails from './pages/ProjectDetails.jsx';
@@ -28,7 +29,7 @@ function Home() {
       if (!res.ok) throw new Error(`Server returned status: ${res.status}`);
       const data = await res.json();
       setResponseMessage(data.message);
-    } catch (err) {
+    } catch {
       setError('Failed to connect to backend server');
     } finally {
       setLoading(false);
@@ -84,25 +85,29 @@ function Home() {
   );
 }
 
-// ─── App with Router ─────────────────────────────────────────────────────────
+// ─── App with AuthProvider & Router ──────────────────────────────────────────
 function App() {
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <AppNav />
-        <div className="app-main">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-            <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
-            <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Routes>
-        </div>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="app-shell">
+            <AppNav />
+            <main className="app-main">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
+                <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+              </Routes>
+            </main>
+          </div>
+        </BrowserRouter>
+      </AuthProvider>
     </ToastProvider>
   );
 }

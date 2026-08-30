@@ -1,10 +1,24 @@
 // Base URL for all API requests
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// In-memory cache & request deduplication store
+const cacheStore = new Map();
+const inFlightRequests = new Map();
+
+// Clear cached items matching pattern or all
+export const clearCache = (pattern) => {
+  if (!pattern) {
+    cacheStore.clear();
+    return;
+  }
+  for (const key of cacheStore.keys()) {
+    if (key.includes(pattern)) {
+      cacheStore.delete(key);
+    }
+  }
+};
+
 // ─── Core fetch wrapper ─────────────────────────────────────────────────────
-// All requests use credentials: 'include' so the browser automatically
-// sends the HTTP-only JWT cookie with every request — this is how
-// authentication works without using localStorage.
 const request = async (path, options = {}) => {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -20,43 +34,111 @@ const request = async (path, options = {}) => {
   }
 
   if (!res.ok) {
-    // Throw the message from the backend so it can be shown in the UI
     throw new Error(data.message || 'Unable to complete the request');
   }
 
   return data;
 };
 
-// ─── Auth API ────────────────────────────────────────────────────────────────
-export const authAPI = {
-  register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
-  login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
-  getMe: () => request('/auth/me'),
+// Cached GET wrapper with deduplication and TTL (default 15 seconds)
+const cachedRequest = async (path, ttlMs = 15000) => {
+  const now = Date.now();
+  const cached = cacheStore.get(path);
+
+  // 1. If valid cached data exists, return it immediately
+  if (cached && (now - cached.timestamp < ttlMs)) {
+    return cached.data;
+  }
+
+  // 2. If a request for this exact path is currently in-flight, reuse it (deduplication)
+  if (inFlightRequests.has(path)) {
+    return inFlightRequests.get(path);
+  }
+
+  // 3. Otherwise, make network request
+  const promise = (async () => {
+    try {
+      const data = await request(path);
+      cacheStore.set(path, { data, timestamp: Date.now() });
+      return data;
+    } finally {
+      inFlightRequests.delete(path);
+    }
+  })();
+
+  inFlightRequests.set(path, promise);
+  return promise;
 };
 
-// ─── Users API (for task assignment dropdown) ────────────────────────────────
+// ─── Auth API ────────────────────────────────────────────────────────────────
+export const authAPI = {
+  register: async (body) => {
+    const res = await request('/auth/register', { method: 'POST', body: JSON.stringify(body) });
+    clearCache();
+    return res;
+  },
+  login: async (body) => {
+    const res = await request('/auth/login', { method: 'POST', body: JSON.stringify(body) });
+    clearCache();
+    return res;
+  },
+  logout: async () => {
+    const res = await request('/auth/logout', { method: 'POST' });
+    clearCache();
+    return res;
+  },
+  getMe: () => cachedRequest('/auth/me', 60000), // Cache auth for 60s
+};
+
+// ─── Users API ───────────────────────────────────────────────────────────────
 export const usersAPI = {
-  getAll: () => request('/users'),
+  getAll: () => cachedRequest('/users', 30000),
 };
 
 // ─── Projects API ────────────────────────────────────────────────────────────
 export const projectsAPI = {
-  getAll: () => request('/projects'),
-  getById: (id) => request(`/projects/${id}`),
-  getSummary: (id) => request(`/projects/${id}/summary`),
-  create: (body) => request('/projects', { method: 'POST', body: JSON.stringify(body) }),
-  update: (id, body) => request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: (id) => request(`/projects/${id}`, { method: 'DELETE' }),
+  getAll: () => cachedRequest('/projects', 15000),
+  getById: (id) => cachedRequest(`/projects/${id}`, 15000),
+  getSummary: (id) => cachedRequest(`/projects/${id}/summary`, 15000),
+  create: async (body) => {
+    const res = await request('/projects', { method: 'POST', body: JSON.stringify(body) });
+    clearCache('/projects');
+    return res;
+  },
+  update: async (id, body) => {
+    const res = await request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    clearCache('/projects');
+    return res;
+  },
+  delete: async (id) => {
+    const res = await request(`/projects/${id}`, { method: 'DELETE' });
+    clearCache('/projects');
+    return res;
+  },
 };
 
 // ─── Tasks API ───────────────────────────────────────────────────────────────
 export const tasksAPI = {
-  getAll: () => request('/tasks'),
-  getDeadlines: () => request('/tasks/deadlines'),
-  getById: (id) => request(`/tasks/${id}`),
-  getByProject: (projectId) => request(`/projects/${projectId}/tasks`),
-  create: (body) => request('/tasks', { method: 'POST', body: JSON.stringify(body) }),
-  update: (id, body) => request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
+  getAll: () => cachedRequest('/tasks', 15000),
+  getDeadlines: () => cachedRequest('/tasks/deadlines', 15000),
+  getById: (id) => cachedRequest(`/tasks/${id}`, 15000),
+  getByProject: (projectId) => cachedRequest(`/projects/${projectId}/tasks`, 15000),
+  create: async (body) => {
+    const res = await request('/tasks', { method: 'POST', body: JSON.stringify(body) });
+    clearCache('/tasks');
+    clearCache('/projects');
+    return res;
+  },
+  update: async (id, body) => {
+    const res = await request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    clearCache('/tasks');
+    clearCache('/projects');
+    return res;
+  },
+  delete: async (id) => {
+    const res = await request(`/tasks/${id}`, { method: 'DELETE' });
+    clearCache('/tasks');
+    clearCache('/projects');
+    return res;
+  },
 };
