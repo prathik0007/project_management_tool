@@ -210,7 +210,9 @@ export const deleteProject = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this project' });
     }
 
-    // 4. Delete the project from MongoDB
+    // 4. Delete the project's tasks first, then the project itself
+    // (prevents orphaned tasks pointing at a deleted project)
+    await Task.deleteMany({ project: project._id });
     await project.deleteOne();
 
     res.status(200).json({
