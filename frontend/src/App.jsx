@@ -11,8 +11,9 @@ import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Projects from './pages/Projects.jsx';
+import NotFound from './pages/NotFound.jsx';
 
-// ─── Home Page (Phase 1 content, preserved) ─────────────────────────────────
+// ─── Home Page (Backend Connection Test, preserved) ──────────────────────────
 function Home() {
   const [responseMessage, setResponseMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,23 +42,23 @@ function Home() {
       <header className="page-header">
         <div>
           <h1>Project Management Tool</h1>
-          <p className="page-subtitle">Frontend is working</p>
+          <p className="page-subtitle">Backend Connection & API Verification</p>
         </div>
       </header>
 
       <main className="content-card">
-        <h2>Backend Connection Test</h2>
+        <h2>Backend Connectivity Test</h2>
         <p className="description">
-          Click the button below to send a <code>GET /api/test</code> request to the Node.js / Express backend.
+          Send a <code>GET /api/test</code> request to verify backend API health.
         </p>
 
         <button className="test-btn" onClick={handleTestBackend} disabled={loading}>
-          {loading ? 'Testing...' : 'Test Backend'}
+          {loading ? 'Testing Connection...' : 'Test Backend Connection'}
         </button>
 
         {responseMessage && (
           <div className="response-box success">
-            <span className="label">Backend Response:</span>
+            <span className="label">Backend Status:</span>
             <p className="message">{responseMessage}</p>
           </div>
         )}
@@ -70,10 +71,9 @@ function Home() {
         )}
       </main>
 
-      {/* Navigation to app sections */}
       <nav className="home-nav">
         <Link to="/dashboard" className="nav-card">
-          <span className="nav-card-label">Open Dashboard</span>
+          <span className="nav-card-label">Go to Dashboard</span>
           <span className="nav-card-arrow">→</span>
         </Link>
         <Link to="/tasks" className="nav-card">
@@ -85,27 +85,87 @@ function Home() {
   );
 }
 
-// ─── App with AuthProvider & Router ──────────────────────────────────────────
+// ─── Authenticated App Layout (Sidebar + Main View) ──────────────────────────
+function AppLayout({ children }) {
+  return (
+    <div className="app-shell">
+      <AppNav />
+      <div className="app-main-content">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App Component ──────────────────────────────────────────────────────
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <BrowserRouter>
-          <div className="app-shell">
-            <AppNav />
-            <main className="app-main">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-                <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
-                <Route path="/deadlines" element={<ProtectedRoute><Deadlines /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-              </Routes>
-            </main>
-          </div>
+          <Routes>
+            {/* Standalone Authentication Pages (No Sidebar, Perfectly Centered) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Standalone Test / Verification Landing Route */}
+            <Route path="/" element={<Home />} />
+
+            {/* Authenticated Application Workspace Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Projects />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:id"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ProjectDetails />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Tasks />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deadlines"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Deadlines />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch-all 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </ToastProvider>

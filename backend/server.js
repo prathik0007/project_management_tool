@@ -19,11 +19,32 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
 
-// Enable CORS — allows the React frontend (localhost:5173) to send requests
+// Enable CORS — allows the React frontend (localhost:5173, localhost:5174, etc.) to send requests
 // credentials: true is required so cookies are included in cross-origin requests
+const explicitOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,                // Allow cookies to be sent and received
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (
+      explicitOrigins.includes(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true, // Allow cookies to be sent and received
 }));
 
 app.use(securityHeaders);

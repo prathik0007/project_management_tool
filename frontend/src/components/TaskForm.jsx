@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react';
 import { tasksAPI, projectsAPI, usersAPI } from '../services/api.js';
+import { Icon } from './Icons.jsx';
 
-// TaskForm handles both CREATE and EDIT modes.
-// Props:
-//   onSuccess   - callback after a successful create/edit
-//   editTask    - if provided, the form pre-fills with this task's data (edit mode)
-//   onCancel    - callback when the user clicks Cancel
 function TaskForm({ onSuccess, editTask = null, onCancel }) {
   const isEditing = Boolean(editTask);
 
-  // Form field state — pre-fill from editTask if we're editing
   const [title, setTitle] = useState(editTask?.title || '');
   const [description, setDescription] = useState(editTask?.description || '');
   const [projectId, setProjectId] = useState(editTask?.project?._id || editTask?.project || '');
@@ -17,19 +12,16 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
   const [status, setStatus] = useState(editTask?.status || 'todo');
   const [priority, setPriority] = useState(editTask?.priority || 'medium');
   const [dueDate, setDueDate] = useState(
-    editTask?.dueDate ? editTask.dueDate.slice(0, 10) : '' // Format to YYYY-MM-DD
+    editTask?.dueDate ? editTask.dueDate.slice(0, 10) : ''
   );
 
-  // Dropdown data
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
-  // Form submission state
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Load projects and users when component first mounts
   useEffect(() => {
     const loadDropdownData = async () => {
       try {
@@ -39,8 +31,8 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
         ]);
         setProjects(projectsData.projects || []);
         setUsers(usersData.users || []);
-      } catch (err) {
-        setError('Failed to load projects or users');
+      } catch {
+        setError('Failed to load projects or users list.');
       } finally {
         setLoadingDropdowns(false);
       }
@@ -53,11 +45,11 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
     setError('');
 
     if (!title.trim()) {
-      setError('Task title is required');
+      setError('Task title is required.');
       return;
     }
     if (!isEditing && !projectId) {
-      setError('Please select a project');
+      setError('Please select a project for this task.');
       return;
     }
 
@@ -73,148 +65,164 @@ function TaskForm({ onSuccess, editTask = null, onCancel }) {
       };
 
       if (isEditing) {
-        // PUT /api/tasks/:id — update existing task
         await tasksAPI.update(editTask._id, payload);
       } else {
-        // POST /api/tasks — create new task
         await tasksAPI.create({ ...payload, project: projectId });
       }
 
-      onSuccess(); // Tell the parent to refresh and close this form
+      onSuccess();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Unable to save task.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loadingDropdowns) {
-    return <p className="loading-text">Loading form data...</p>;
-  }
-
   return (
-    <form className="task-form" onSubmit={handleSubmit}>
-      <h3 className="form-title">{isEditing ? 'Edit Task' : 'Create New Task'}</h3>
-
-      {error && <div className="form-error">{error}</div>}
-
-      {/* Title */}
-      <div className="form-group">
-        <label htmlFor="task-title">Title *</label>
-        <input
-          id="task-title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Task title"
-          required
-        />
-      </div>
-
-      {/* Description */}
-      <div className="form-group">
-        <label htmlFor="task-desc">Description</label>
-        <textarea
-          id="task-desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional description"
-          rows={3}
-        />
-      </div>
-
-      {/* Project (only for create mode — can't reassign a task's project) */}
-      {!isEditing && (
-        <div className="form-group">
-          <label htmlFor="task-project">Project *</label>
-          <select
-            id="task-project"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            required
-          >
-            <option value="">— Select a project —</option>
-            {projects.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          {projects.length === 0 && (
-            <p className="hint-text">No projects yet. Create a project first.</p>
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-card modal-card-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title-group">
+            <span className="modal-icon-badge">
+              <Icon name="check" size={18} />
+            </span>
+            <h3>{isEditing ? 'Edit Task' : 'Create New Task'}</h3>
+          </div>
+          {onCancel && (
+            <button className="modal-close-btn" onClick={onCancel} aria-label="Close dialog">
+              <Icon name="x" size={18} />
+            </button>
           )}
         </div>
-      )}
 
-      {/* Assigned To */}
-      <div className="form-group">
-        <label htmlFor="task-assigned">Assign To</label>
-        <select
-          id="task-assigned"
-          value={assignedTo}
-          onChange={(e) => setAssignedTo(e.target.value)}
-        >
-          <option value="">— Unassigned —</option>
-          {users.map((u) => (
-            <option key={u._id} value={u._id}>
-              {u.name} ({u.email})
-            </option>
-          ))}
-        </select>
-      </div>
+        {loadingDropdowns ? (
+          <div className="modal-body modal-loading">
+            <span className="btn-spinner" />
+            <p>Loading projects and assignment data...</p>
+          </div>
+        ) : (
+          <form className="modal-body" onSubmit={handleSubmit}>
+            {error && (
+              <div className="form-error-alert" role="alert">
+                <Icon name="alert" size={16} />
+                <span>{error}</span>
+              </div>
+            )}
 
-      {/* Priority */}
-      <div className="form-group">
-        <label htmlFor="task-priority">Priority</label>
-        <select
-          id="task-priority"
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-      </div>
+            <div className="form-group">
+              <label htmlFor="task-title">Task Title *</label>
+              <input
+                id="task-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Implement authentication middleware"
+                required
+              />
+            </div>
 
-      {/* Status (only relevant for editing) */}
-      {isEditing && (
-        <div className="form-group">
-          <label htmlFor="task-status">Status</label>
-          <select
-            id="task-status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="todo">To Do</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-      )}
+            <div className="form-group">
+              <label htmlFor="task-desc">Description</label>
+              <textarea
+                id="task-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Provide detailed instructions or acceptance criteria..."
+                rows={3}
+              />
+            </div>
 
-      {/* Due Date */}
-      <div className="form-group">
-        <label htmlFor="task-due">Due Date</label>
-        <input
-          id="task-due"
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-        />
-      </div>
+            <div className="form-row-2col">
+              {!isEditing && (
+                <div className="form-group">
+                  <label htmlFor="task-project">Project *</label>
+                  <select
+                    id="task-project"
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    required
+                  >
+                    <option value="">— Select a project —</option>
+                    {projects.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-      <div className="form-actions">
-        <button type="submit" className="btn-primary" disabled={submitting}>
-          {submitting ? 'Saving...' : isEditing ? 'Update Task' : 'Create Task'}
-        </button>
-        {onCancel && (
-          <button type="button" className="btn-secondary" onClick={onCancel}>
-            Cancel
-          </button>
+              <div className="form-group">
+                <label htmlFor="task-assigned">Assignee</label>
+                <select
+                  id="task-assigned"
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                >
+                  <option value="">— Unassigned —</option>
+                  {users.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row-3col">
+              <div className="form-group">
+                <label htmlFor="task-priority">Priority</label>
+                <select
+                  id="task-priority"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+
+              {isEditing && (
+                <div className="form-group">
+                  <label htmlFor="task-status">Status</label>
+                  <select
+                    id="task-status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="task-due">Due Date</label>
+                <input
+                  id="task-due"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              {onCancel && (
+                <button type="button" className="btn-secondary" onClick={onCancel}>
+                  Cancel
+                </button>
+              )}
+              <button type="submit" className="btn-primary" disabled={submitting}>
+                {submitting ? 'Saving Task...' : isEditing ? 'Update Task' : 'Create Task'}
+              </button>
+            </div>
+          </form>
         )}
       </div>
-    </form>
+    </div>
   );
 }
 
