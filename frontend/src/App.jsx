@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Projects from './pages/Projects.jsx';
+import Settings from './pages/Settings.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 // ─── Home Page (Backend Connection Test, preserved) ──────────────────────────
@@ -194,6 +195,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Deadlines />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Settings />
                   </AppLayout>
                 </ProtectedRoute>
               }

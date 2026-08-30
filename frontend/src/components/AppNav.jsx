@@ -53,6 +53,7 @@ function AppNav({ onOpenQuickCreate, onOpenSearch }) {
     if (location.pathname === '/projects') return 'Projects';
     if (location.pathname === '/tasks') return 'Tasks';
     if (location.pathname === '/deadlines') return 'Deadlines & Milestones';
+    if (location.pathname === '/settings') return 'Workspace Settings';
     return 'ProjectFlow';
   })();
 
@@ -94,17 +95,15 @@ function AppNav({ onOpenQuickCreate, onOpenSearch }) {
         SYSTEM
       </div>
       <nav className="sidebar-links" aria-label="System Links">
-        <button
-          type="button"
-          className="sidebar-link sidebar-btn-link"
-          onClick={() => {
-            showToast('Settings & Workspace preferences are up to date.', 'info');
-            setDrawerOpen(false);
-          }}
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `sidebar-link ${isActive ? 'active' : ''}`
+          }
         >
           <Icon name="settings" size={18} />
           <span>Settings</span>
-        </button>
+        </NavLink>
       </nav>
 
       <div className="sidebar-footer">
