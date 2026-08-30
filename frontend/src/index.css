@@ -12,14 +12,14 @@
   --card-sunken: #0b1222;
   --card-inner: #16223a;
 
-  /* Text Colors */
+  /* Text Colors (High Contrast & Clear Hierarchy) */
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  --text-muted: #9cb0c9;
+  --text-subtle: #72849e;
 
   /* Borders */
-  --border-color: #263550;
-  --border-strong: #374b70;
+  --border-color: #263654;
+  --border-strong: #3b4e75;
   --border-focus: #22b8f0;
 
   /* Accent: Primary Cyan */
@@ -59,7 +59,7 @@
   --sidebar-width: 240px;
   --topbar-height: 66px;
 
-  /* Typography Scale (Readable, Professional Baseline) */
+  /* Typography Scale */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --fs-xs: 0.85rem;     /* 13.6px */
   --fs-sm: 0.95rem;     /* 15.2px */
@@ -247,7 +247,7 @@ button, input, select, textarea {
   color: var(--primary-color);
 }
 
-/* Form inputs & controls (Comfortable 44-48px Min-Height) */
+/* Form inputs & controls */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -572,12 +572,13 @@ input::placeholder, textarea::placeholder {
   color: var(--text-muted);
   font-size: var(--fs-xs);
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.topbar-search-trigger:hover {
-  border-color: var(--border-strong);
+.topbar-search-trigger:hover, .topbar-search-trigger:focus-visible {
+  border-color: var(--primary-color);
   background-color: var(--card-bg-hover);
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
 .search-kbd-badge {
@@ -589,8 +590,22 @@ input::placeholder, textarea::placeholder {
   border-radius: 4px;
 }
 
-.topbar-notifications-wrapper {
+.topbar-notifications-wrapper, .topbar-profile-wrapper {
   position: relative;
+}
+
+.topbar-bell-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-bell-btn.active {
+  background-color: var(--primary-soft);
+  color: var(--primary-color);
 }
 
 .notifications-dropdown {
@@ -639,6 +654,7 @@ input::placeholder, textarea::placeholder {
   color: var(--text-subtle);
 }
 
+/* User Profile Pill & Dropdown */
 .topbar-user-badge {
   display: flex;
   align-items: center;
@@ -647,6 +663,15 @@ input::placeholder, textarea::placeholder {
   background-color: var(--card-sunken);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text-main);
+}
+
+.topbar-user-badge:hover, .topbar-user-badge.active {
+  border-color: var(--primary-color);
+  background-color: var(--card-bg-hover);
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
 .topbar-user-avatar {
@@ -665,7 +690,94 @@ input::placeholder, textarea::placeholder {
 .topbar-user-name {
   font-size: var(--fs-xs);
   font-weight: 600;
+  color: var(--text-main);
+}
+
+.profile-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  animation: modal-enter 0.15s ease-out;
+  overflow: hidden;
+}
+
+.profile-dropdown-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--card-sunken);
+}
+
+.dropdown-user-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-user-email {
+  font-size: var(--fs-xs);
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-dropdown-links {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.dropdown-menu-item:hover {
+  background-color: var(--primary-soft);
+  color: var(--primary-color);
+}
+
+.profile-dropdown-footer {
+  padding: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.dropdown-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdown-logout-btn:hover {
+  background-color: var(--danger-bg);
 }
 
 .drawer-overlay {
@@ -878,7 +990,7 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ==========================================================================
-   Buttons Component System (40-44px Min-Height)
+   Buttons Component System (Consistent 42-44px Min-Height)
    ========================================================================== */
 
 .btn-primary, .btn-secondary, .btn-danger, .btn-ghost, .test-btn {
@@ -907,6 +1019,10 @@ input::placeholder, textarea::placeholder {
   background-color: var(--primary-hover);
   border-color: var(--primary-hover);
   box-shadow: 0 3px 14px rgba(34, 184, 240, 0.28);
+}
+
+.btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled), .btn-danger:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btn-secondary {
