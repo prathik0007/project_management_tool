@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+﻿import { useEffect, useState } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../services/api.js';
 import { Icon } from './Icons.jsx';
 
-// ─── App shell: sidebar on desktop, slide-in drawer on mobile ───────────────
+// â”€â”€â”€ App shell: sidebar on desktop, slide-in drawer on mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/projects', label: 'Projects', icon: 'folder' },
@@ -54,6 +54,8 @@ function SidebarContent({ user, onLogout, onNavigate }) {
 
 export default function AppNav() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const [user, setUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -75,6 +77,8 @@ export default function AppNav() {
   };
 
   const close = () => setDrawerOpen(false);
+
+  if (isAuthPage) return null;
 
   return (
     <>

@@ -82,7 +82,13 @@ body {
 }
 
 /* Main content area sits beside the desktop sidebar */
-.app-main { flex: 1; width: 100%; min-width: 0; }
+.app-main {
+  flex: 1; width: 100%; min-width: 0;
+  margin-left: var(--sidebar-width);
+}
+@media (max-width: 768px) {
+  .app-main { margin-left: 0; }
+}
 
 h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
 
@@ -157,6 +163,13 @@ h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
   background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
 }
 .drawer-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 45; }
+/* Drawer is hidden entirely on desktop � only the mobile media query shows it */
+.sidebar--drawer { display: none; }
+
+/* Auth pages render without the app sidebar offset (AppNav returns null on /login & /register) */
+.auth-page { margin-left: 0 !important; }
+/* Neutralize the sidebar offset for the whole app shell on auth pages (AppNav renders nothing there) */
+.auth-page-root .app-main, .app-main:has(.auth-page) { margin-left: 0 !important; }
 .drawer-close {
   position: absolute; top: 14px; right: 12px;
   display: inline-grid; place-items: center;
@@ -166,7 +179,7 @@ h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
 
 /* ─── Page scaffolding ───────────────────────────────────────────────────── */
 .page-container, .dashboard-container {
-  max-width: 1180px;
+  max-width: 1320px;
   width: 100%;
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) 4rem;
@@ -180,9 +193,7 @@ h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
 }
 .page-header h1, .dashboard-header h1 {
   font-size: var(--fs-2xl); font-weight: 800; letter-spacing: -0.03em;
-  background: linear-gradient(90deg, var(--text-main) 55%, var(--primary-color) 135%);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-main); /* solid, high-contrast � no gradient text */
 }
 .page-subtitle, .dashboard-header p { color: var(--text-muted); font-size: var(--fs-md); margin-top: 0.3rem; }
 .dashboard-actions-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -451,7 +462,7 @@ h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
 /* ─── Empty / loading states ─────────────────────────────────────────────── */
 .empty-state {
   text-align: center;
-  padding: 3.25rem 1.5rem;
+  padding: 2rem 1.5rem;
   color: var(--text-muted);
   background: var(--card-bg);
   border: 1px dashed var(--border-color);
@@ -460,13 +471,13 @@ h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; }
 }
 .empty-state-icon {
   display: inline-grid; place-items: center;
-  width: 52px; height: 52px; border-radius: var(--radius-md);
+  width: 42px; height: 42px; border-radius: var(--radius-md);
   background: var(--primary-soft); color: var(--primary-color);
   margin-bottom: var(--space-2);
 }
-.empty-state-title { font-size: var(--fs-lg); font-weight: 700; color: var(--text-main); }
+.empty-state-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); }
 .empty-state .muted { font-size: var(--fs-sm); max-width: 380px; }
-.empty-state .btn-primary, .empty-state a.btn-primary { margin-top: var(--space-3); }
+.empty-state .btn-primary, .empty-state a.btn-primary { margin-top: var(--space-2); padding: 0.5rem 1rem; font-size: var(--fs-sm); }
 
 .loading-text { color: var(--text-muted); text-align: center; padding: 2rem 0; }
 .error-text { color: var(--danger-text); text-align: center; padding: 2rem 0; }
