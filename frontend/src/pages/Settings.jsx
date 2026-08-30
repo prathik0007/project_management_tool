@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { Icon } from '../components/Icons.jsx';
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { showToast } = useToast();
 
@@ -41,7 +43,7 @@ export default function Settings() {
     try {
       await logout();
       showToast('Signed out of session', 'info');
-      window.location.href = '/login';
+      navigate('/login');
     } catch {
       showToast('Error during logout', 'error');
     }

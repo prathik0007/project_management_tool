@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { tasksAPI } from '../services/api.js';
 import { useToast } from '../components/Toast.jsx';
 import { Icon } from '../components/Icons.jsx';
@@ -14,6 +14,7 @@ function formatDate(dateStr) {
 }
 
 export default function Deadlines() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +185,7 @@ export default function Deadlines() {
           title="No deadlines currently scheduled"
           message="Assign due dates to your project tasks to track milestones and deliverables."
           actionLabel="+ Go to Tasks"
-          onAction={() => (window.location.href = '/tasks')}
+          onAction={() => navigate('/tasks')}
         />
       ) : (
         <div className="deadline-groups">

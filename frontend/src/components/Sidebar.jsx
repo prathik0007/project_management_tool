@@ -80,11 +80,15 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <div className="sidebar-footer">
         <div className="sidebar-user-block">
-          <div className="sidebar-profile">
+          <div className="sidebar-profile" title={`${user?.name || 'User'} (${user?.email || ''})`}>
             <div className="sidebar-avatar">{userInitials}</div>
             <div className="sidebar-profile-meta">
-              <span className="sidebar-user-name">{user?.name || 'Workspace User'}</span>
-              <span className="sidebar-user-email">{user?.email || ''}</span>
+              <span className="sidebar-user-name" title={user?.name || 'Workspace User'}>
+                {user?.name || 'Workspace User'}
+              </span>
+              <span className="sidebar-user-email" title={user?.email || ''}>
+                {user?.email || ''}
+              </span>
             </div>
           </div>
           <button
