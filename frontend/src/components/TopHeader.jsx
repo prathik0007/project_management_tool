@@ -64,7 +64,7 @@ export default function TopHeader({ onOpenMobileMenu, onOpenSearch, onOpenQuickT
     if (location.pathname === '/projects') return 'Projects';
     if (location.pathname === '/tasks') return 'Tasks';
     if (location.pathname === '/deadlines') return 'Deadlines & Milestones';
-    if (location.pathname === '/settings') return 'Workspace Settings';
+    if (location.pathname === '/settings') return 'Settings';
     return 'ProjectFlow';
   })();
 

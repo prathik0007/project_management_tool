@@ -196,8 +196,8 @@ export default function Settings() {
 
             <div className="danger-zone-box">
               <div className="danger-zone-text">
-                <h4>Sign out of current workspace</h4>
-                <p>Terminates the active HTTP-only JWT cookie session from your browser.</p>
+                <h4>Sign out of this session</h4>
+                <p>You will be signed out of your current ProjectFlow account on this browser.</p>
               </div>
               <button type="button" className="btn-danger" onClick={handleSignOut}>
                 <Icon name="logout" size={15} />
