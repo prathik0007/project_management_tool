@@ -59,7 +59,7 @@
   --sidebar-width: 240px;
   --topbar-height: 64px;
 
-  /* Typography Scale (Comfortable Sizing) */
+  /* Typography Scale */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --fs-xs: 0.8rem;     /* 13px */
   --fs-sm: 0.925rem;   /* 15px */
@@ -247,7 +247,7 @@ button, input, select, textarea {
   color: var(--primary-color);
 }
 
-/* Form inputs & controls (Comfortable 42-46px Min-Height) */
+/* Form inputs & controls */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -295,28 +295,64 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ==========================================================================
-   App Shell Layout & Navigation
+   App Shell Layout (SIDEBAR + FULL-WIDTH TOP HEADER + PAGE CONTENT)
    ========================================================================== */
 
-.app-shell {
-  min-height: 100vh;
+.app-layout {
   display: flex;
+  min-height: 100vh;
+  width: 100%;
   background-color: var(--bg-dark);
 }
 
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+.app-sidebar {
   width: var(--sidebar-width);
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background-color: var(--bg-elevated);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   z-index: 40;
   padding: 1.35rem 1.15rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-dark);
+}
+
+.app-top-header {
+  height: var(--topbar-height);
+  width: 100%;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.app-main-content {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-container {
+  padding: 2rem 2.25rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0;
 }
 
 .sidebar-brand-wrapper {
@@ -480,28 +516,7 @@ input::placeholder, textarea::placeholder {
   border-color: var(--danger-border);
 }
 
-/* App Main Container & Topbar */
-.app-main-content {
-  flex: 1;
-  margin-left: var(--sidebar-width);
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-topbar {
-  height: var(--topbar-height);
-  background-color: var(--bg-topbar);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-}
-
+/* Topbar Controls */
 .topbar-left {
   display: flex;
   align-items: center;
@@ -788,22 +803,15 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ==========================================================================
-   Page Containers & Page Header Layout (Max-Width 1400px, 32px Padding)
+   Page Headers & Error Box
    ========================================================================== */
-
-.page-container {
-  padding: 2rem 2.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
 
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.85rem;
   flex-wrap: wrap;
 }
 
@@ -856,7 +864,7 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ==========================================================================
-   Buttons Component System (Comfortable 40-42px Min-Height)
+   Buttons Component System
    ========================================================================== */
 
 .btn-primary, .btn-secondary, .btn-danger, .btn-ghost, .test-btn {
@@ -930,8 +938,8 @@ input::placeholder, textarea::placeholder {
 }
 
 .btn-sm {
-  min-height: 32px;
-  padding: 0.35rem 0.85rem;
+  min-height: 34px;
+  padding: 0.4rem 0.95rem;
   font-size: var(--fs-xs);
 }
 
@@ -2772,18 +2780,23 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 768px) {
-  .sidebar.desktop-only {
+  .app-sidebar.desktop-only {
     display: none;
   }
 
-  .sidebar.sidebar--drawer {
+  .app-sidebar.app-sidebar--drawer {
     display: flex;
     transform: translateX(-100%);
     width: 280px;
     z-index: 50;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .sidebar.sidebar--drawer.open {
+  .app-sidebar.app-sidebar--drawer.open {
     transform: translateX(0);
   }
 
@@ -2791,12 +2804,12 @@ input:checked + .toggle-slider:before {
     display: block;
   }
 
-  .app-main-content {
-    margin-left: 0;
-  }
-
   .mobile-menu-btn {
     display: inline-flex;
+  }
+
+  .app-top-header {
+    padding: 0 1.25rem;
   }
 
   .topbar-search-trigger .search-placeholder-text,

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import AppNav from './components/AppNav.jsx';
-import CommandPalette from './components/CommandPalette.jsx';
-import TaskForm from './components/TaskForm.jsx';
+import AppLayout from './components/AppLayout.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -84,52 +82,6 @@ function Home() {
           <span className="nav-card-arrow">→</span>
         </Link>
       </nav>
-    </div>
-  );
-}
-
-// ─── Authenticated App Layout (Sidebar + Topbar + Command Palette + Quick Create) ───
-function AppLayout({ children }) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  return (
-    <div className="app-shell">
-      <AppNav
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenQuickCreate={() => setIsQuickTaskOpen(true)}
-      />
-      <main className="app-main-content">
-        {children}
-      </main>
-
-      {/* Global Quick Search (Ctrl+K) */}
-      <CommandPalette
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
-
-      {/* Quick Task Creation Modal */}
-      {isQuickTaskOpen && (
-        <TaskForm
-          onSuccess={() => {
-            setIsQuickTaskOpen(false);
-            window.dispatchEvent(new CustomEvent('projectflow:refresh'));
-          }}
-          onClose={() => setIsQuickTaskOpen(false)}
-        />
-      )}
     </div>
   );
 }
